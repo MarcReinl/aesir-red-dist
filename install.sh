@@ -30,14 +30,34 @@ note() {
 }
 
 # Refuse a C library the archive was never built for, by name, rather than
-# letting it fail later as a dyld or symbol error.
+# letting it fail later as a loader or symbol error.
 detect_linux_libc() {
-  if ls /lib/ld-musl-* >/dev/null 2>&1 || (ldd --version 2>&1 | grep -qi musl); then
-    die "musl libc (Alpine and similar) is not supported. The bundled Node runtime and the
+  musl_reason="musl libc (Alpine and similar) is not supported. The bundled Node runtime and the
   node-pty and node-addon-require-builtin addons are glibc builds, and no musl
   build is published. Use a glibc distribution, or run AESIR Red from source."
+
+  # Ask which C library is actually in use, rather than whether a musl loader
+  # exists on disk. A glibc machine with musl-tools installed for
+  # cross-compilation carries /lib/ld-musl-*.so.1 and still runs glibc
+  # binaries, so a file-presence probe refuses a perfectly supported system.
+  if command -v ldd >/dev/null 2>&1; then
+    if ldd --version 2>&1 | head -1 | grep -qi musl; then die "$musl_reason"; fi
+  else
+    # Without ldd, fall back to file presence: a musl system has no glibc
+    # loader alongside it.
+    for loader in /lib/ld-musl-*.so.1; do
+      if [ -e "$loader" ] && ! ls /lib*/ld-linux*.so* >/dev/null 2>&1; then die "$musl_reason"; fi
+    done
   fi
-  glibc=$(ldd --version 2>/dev/null | head -1 | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+' | head -1 || true)
+
+  # `ldd --version` opens with "ldd (Debian GLIBC 2.36-9+deb12u14) 2.36": the
+  # bare release is the last field. The parenthesised distribution package
+  # version is not comparable with sort -V.
+  glibc=$(ldd --version 2>&1 | head -1 | awk '{ print $NF }')
+  case "$glibc" in
+    [0-9]*.[0-9]*) ;;
+    *) glibc='' ;;
+  esac
   if [ -n "$glibc" ] && [ "$(printf '%s\n%s\n' "$GLIBC_FLOOR" "$glibc" | sort -V | head -1)" != "$GLIBC_FLOOR" ]; then
     die "glibc $glibc is older than the required $GLIBC_FLOOR."
   fi
