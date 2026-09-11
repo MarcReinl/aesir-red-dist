@@ -107,7 +107,13 @@ verify_checksum() {
   sums_path=$2
   filename=$3
   expected=$(awk -v want="$filename" '$2 == want || $2 == "*" want { print $1 }' "$sums_path" | head -1)
-  [ -n "$expected" ] || die "$filename is absent from SHA256SUMS."
+  # The archive downloaded, so it exists in the release; a checksum document
+  # that does not list it is stale rather than wrong. GitHub serves release
+  # assets through a cache, and SHA256SUMS is rewritten whenever a platform is
+  # added, so a reader can briefly see the previous revision.
+  [ -n "$expected" ] || die "$filename downloaded, but SHA256SUMS does not list it yet.
+  This usually means the checksum file is a cached earlier revision. Wait a
+  minute and re-run this installer; nothing was installed."
   if command -v sha256sum >/dev/null 2>&1; then
     actual=$(sha256sum "$archive_path" | cut -d' ' -f1)
   elif command -v shasum >/dev/null 2>&1; then
