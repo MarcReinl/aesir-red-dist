@@ -118,30 +118,68 @@ verify_checksum() {
   [ "$actual" = "$expected" ] || die "checksum mismatch for $filename (expected $expected, got $actual)."
 }
 
-# Link the launcher onto PATH, telling the user what to add when it is not
-# already there. An unrecognized shell gets the line to paste rather than
-# silence.
+# Append one PATH line to a startup file, unless that file already mentions the
+# install. Records what changed in $configured.
+#
+# Every supported shell is configured rather than only the one $SHELL names:
+# $SHELL is unset under cron, containers and some SSH invocations, and a user
+# who installs from one shell routinely starts another.
+add_path_line() {
+  rc=$1
+  line=$2
+  if [ -f "$rc" ] && grep -qF "$AESIR_ROOT/bin" "$rc"; then
+    return 0
+  fi
+  mkdir -p "$(dirname "$rc")" 2>/dev/null || true
+  printf '\n# AESIR Red\n%s\n' "$line" >> "$rc" 2>/dev/null || return 0
+  configured="$configured $rc"
+}
+
+# Link the launcher onto PATH for every shell present on the machine.
 link_launcher() {
   destination=$1
   mkdir -p "$AESIR_ROOT/bin"
   ln -sfn "$destination/bin/aesir" "$AESIR_ROOT/bin/aesir"
-  case ":$PATH:" in
-    *":$AESIR_ROOT/bin:"*) return 0 ;;
-  esac
-  export_line="export PATH=\"$AESIR_ROOT/bin:\$PATH\""
-  case "${SHELL:-}" in
-    */zsh) rc="${ZDOTDIR:-$HOME}/.zshrc" ;;
-    */bash) rc="$HOME/.bashrc" ;;
-    *) rc='' ;;
-  esac
-  if [ -n "$rc" ]; then
-    if [ ! -f "$rc" ] || ! grep -qF "$AESIR_ROOT/bin" "$rc"; then
-      printf '\n# AESIR Red\n%s\n' "$export_line" >> "$rc"
-      note "Added $AESIR_ROOT/bin to PATH in $rc — run: exec \$SHELL"
+
+  posix_line="export PATH=\"$AESIR_ROOT/bin:\$PATH\""
+  configured=''
+
+  # ~/.profile covers sh, dash and every POSIX login shell. It is written even
+  # when no such shell is installed, because it costs nothing and is what a
+  # future login shell reads.
+  add_path_line "$HOME/.profile" "$posix_line"
+
+  # zsh reads .zshrc for interactive shells; ZDOTDIR relocates the whole set.
+  if [ -n "${ZDOTDIR:-}" ] || command -v zsh >/dev/null 2>&1 || [ -f "${ZDOTDIR:-$HOME}/.zshrc" ]; then
+    add_path_line "${ZDOTDIR:-$HOME}/.zshrc" "$posix_line"
+  fi
+
+  # bash reads .bashrc when interactive and non-login (the Linux norm) but
+  # .bash_profile when login (the macOS Terminal norm), so both are needed.
+  if command -v bash >/dev/null 2>&1 || [ -f "$HOME/.bashrc" ]; then
+    add_path_line "$HOME/.bashrc" "$posix_line"
+    if [ -f "$HOME/.bash_profile" ]; then
+      add_path_line "$HOME/.bash_profile" "$posix_line"
     fi
+  fi
+
+  # fish does not read POSIX exports and has its own PATH helper.
+  if command -v fish >/dev/null 2>&1 || [ -d "$HOME/.config/fish" ]; then
+    add_path_line "$HOME/.config/fish/config.fish" "fish_add_path \"$AESIR_ROOT/bin\""
+  fi
+
+  case ":$PATH:" in
+    *":$AESIR_ROOT/bin:"*)
+      # Already reachable in this shell, so no restart is needed.
+      return 0
+      ;;
+  esac
+  if [ -n "$configured" ]; then
+    note "Added $AESIR_ROOT/bin to PATH in:${configured}"
+    note "Open a new terminal, or run: export PATH=\"$AESIR_ROOT/bin:\$PATH\""
   else
-    note "Add this to your shell profile:"
-    note "  $export_line"
+    note "Could not write a shell profile. Add this line yourself:"
+    note "  $posix_line"
   fi
 }
 
