@@ -143,7 +143,17 @@ main() {
   tmp=$(mktemp -d)
   trap 'rm -rf "$tmp"' EXIT INT TERM
 
-  curl -fsSL "$base/$filename" -o "$tmp/$filename" || die "could not download $base/$filename"
+  # A missing asset is the one failure a user is most likely to hit, so it
+  # reports which platform is unavailable and what is published, rather than a
+  # bare HTTP error.
+  if ! curl -fsL "$base/$filename" -o "$tmp/$filename" 2>/dev/null; then
+    published=$(curl -fsSL "$base/SHA256SUMS" 2>/dev/null | awk '{ sub(/^\*/, "", $2); print $2 }' \
+      | sed -e "s/^aesir-$AESIR_VERSION-//" -e 's/\.tar\.gz$//' -e 's/\.zip$//' | paste -sd', ' -)
+    die "no $platform-$arch archive in release aesir-v$AESIR_VERSION.
+  Published for this release: ${published:-none}
+  Set AESIR_VERSION to pick another release, or open an issue at
+  https://github.com/$AESIR_REPO/issues to ask for this platform."
+  fi
   curl -fsSL "$base/SHA256SUMS" -o "$tmp/SHA256SUMS" || die "could not download $base/SHA256SUMS"
   verify_checksum "$tmp/$filename" "$tmp/SHA256SUMS" "$filename"
 
