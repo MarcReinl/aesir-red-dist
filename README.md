@@ -45,10 +45,22 @@ curl -fsSLO https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-
 sha256sum -c SHA256SUMS --ignore-missing
 ```
 
+## After installing
+
+The installer puts `~/.aesir/bin` on PATH in `~/.profile` and in the startup file of every
+shell you have (`.zshrc`, `.bashrc`, `.bash_profile`, fish's `config.fish`). Those apply to
+the **next** shell — an installer runs as a child process and cannot change the PATH of the
+shell that launched it.
+
+If `~/.local/bin` is already on your PATH, the installer also links `aesir` there, so it
+works in the current shell immediately. Otherwise, open a new terminal or run the `export`
+line the installer prints.
+
 ## Uninstall
 
-Remove `~/.aesir` and the `aesir` entry from your shell profile. That directory also holds
-`home`, so move `~/.aesir/home` aside first if you want to keep your sessions and settings.
+Remove `~/.aesir`, the `aesir` entry from your shell profiles, and `~/.local/bin/aesir` if
+it was linked. `~/.aesir` also holds `home`, so move `~/.aesir/home` aside first if you want
+to keep your sessions and settings.
 
 ## Source
 

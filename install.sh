@@ -180,9 +180,24 @@ link_launcher() {
       return 0
       ;;
   esac
+
+  # A shell profile only takes effect in the NEXT shell: this installer is a
+  # child process and cannot alter the PATH of the shell that invoked it. When
+  # ~/.local/bin is already on PATH the user has opted into a personal bin
+  # directory, so linking there as well makes `aesir` resolve straight away.
+  local_bin="$HOME/.local/bin"
+  case ":$PATH:" in
+    *":$local_bin:"*)
+      if mkdir -p "$local_bin" 2>/dev/null && ln -sfn "$destination/bin/aesir" "$local_bin/aesir" 2>/dev/null; then
+        note "Linked $local_bin/aesir — available in this shell right now."
+        return 0
+      fi
+      ;;
+  esac
+
   if [ -n "$configured" ]; then
     note "Added $AESIR_ROOT/bin to PATH in:${configured}"
-    note "Open a new terminal, or run: export PATH=\"$AESIR_ROOT/bin:\$PATH\""
+    note "That applies to new shells. For this one: export PATH=\"$AESIR_ROOT/bin:\$PATH\""
   else
     note "Could not write a shell profile. Add this line yourself:"
     note "  $posix_line"
