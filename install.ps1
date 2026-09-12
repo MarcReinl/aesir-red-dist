@@ -21,7 +21,7 @@
 # its ConPTY backend and its key handling are unproven here.
 $ErrorActionPreference = 'Stop'
 
-$Version = if ($env:AESIR_VERSION) { $env:AESIR_VERSION } else { '0.1.1-rc.2' }
+$Version = if ($env:AESIR_VERSION) { $env:AESIR_VERSION } else { '0.1.1-rc.3' }
 $Repo = if ($env:AESIR_REPO) { $env:AESIR_REPO } else { 'MarcReinl/aesir-red-dist' }
 $Root = if ($env:AESIR_ROOT) { $env:AESIR_ROOT } else { Join-Path $env:LOCALAPPDATA 'aesir' }
 $InstallSystemPackages = $env:AESIR_INSTALL_SYSTEM_PACKAGES -ne '0'

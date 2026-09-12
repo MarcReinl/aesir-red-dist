@@ -21,7 +21,7 @@
 # download cannot execute a partial script.
 set -eu
 
-AESIR_VERSION="${AESIR_VERSION:-0.1.1-rc.2}"
+AESIR_VERSION="${AESIR_VERSION:-0.1.1-rc.3}"
 AESIR_REPO="${AESIR_REPO:-MarcReinl/aesir-red-dist}"
 AESIR_ROOT="${AESIR_ROOT:-$HOME/.aesir}"
 AESIR_INSTALL_SYSTEM_PACKAGES="${AESIR_INSTALL_SYSTEM_PACKAGES:-1}"
