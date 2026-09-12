@@ -4,7 +4,17 @@
 #
 # Downloads a bundled-runtime archive — an official Node runtime plus the whole
 # installed plugin closure — verifies its checksum, extracts it under
-# %LOCALAPPDATA%\aesir\versions\<version>, and puts `aesir` on PATH.
+# %LOCALAPPDATA%\aesir\versions\<version>, puts `aesir` on PATH, checks that
+# the launcher starts, and installs PowerShell 7 through winget when it is
+# missing, since the shell tool runs commands through it. The sandbox on
+# Windows is built into the archive (a write-restricted token) and needs no
+# extra install.
+#
+# Environment:
+#   AESIR_VERSION                  release to install (default: the one below)
+#   AESIR_ROOT                     install root (default: %LOCALAPPDATA%\aesir)
+#   AESIR_INSTALL_SYSTEM_PACKAGES  set to 0 to never run winget; the installer
+#                                  then only reports what is missing
 #
 # Experimental: no CI job has ever booted this terminal on real Windows. The
 # Windows build leg runs the batch boot smoke only; the interactive terminal,
@@ -14,8 +24,10 @@ $ErrorActionPreference = 'Stop'
 $Version = if ($env:AESIR_VERSION) { $env:AESIR_VERSION } else { '0.1.1-rc.2' }
 $Repo = if ($env:AESIR_REPO) { $env:AESIR_REPO } else { 'MarcReinl/aesir-red-dist' }
 $Root = if ($env:AESIR_ROOT) { $env:AESIR_ROOT } else { Join-Path $env:LOCALAPPDATA 'aesir' }
+$InstallSystemPackages = $env:AESIR_INSTALL_SYSTEM_PACKAGES -ne '0'
 
 function Write-Note([string] $Text) { Write-Host "  $Text" }
+function Write-Warn([string] $Text) { Write-Host "aesir install: WARNING — $Text" -ForegroundColor Yellow }
 
 Write-Host ''
 Write-Host '  AESIR Red for Windows is EXPERIMENTAL.' -ForegroundColor Yellow
@@ -68,6 +80,16 @@ finally {
   Remove-Item -Recurse -Force $Temp -ErrorAction SilentlyContinue
 }
 
+# Start the installed launcher once: the bundled Node against the archive
+# answers --version before any plugin loads, which proves the runtime and the
+# launcher without a model or a workspace.
+$NodeExe = Join-Path (Join-Path $Destination 'node') 'node.exe'
+$Launcher = Join-Path $Destination 'aesir-launch.mjs'
+$Installed = & $NodeExe $Launcher --version 2>&1
+if ($LASTEXITCODE -ne 0) {
+  throw "aesir install: the installed launcher failed to start:`n  $Installed`n  Nothing else was changed; re-run this installer after fixing the cause."
+}
+
 $BinDir = Join-Path $Root 'bin'
 New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
 foreach ($shim in @('aesir.cmd', 'aesir.ps1')) {
@@ -87,6 +109,28 @@ if (($RawPath -split ';') -notcontains $BinDir) {
   Write-Note "Added $BinDir to your user PATH — open a new terminal for it to take effect."
 }
 
+# The shell tool runs commands through PowerShell 7 (pwsh) and falls back to
+# Windows PowerShell 5.1, which writes the OEM code page and garbles non-ASCII
+# tool output. Installing pwsh here is what keeps that a non-event for the user.
+function Test-Pwsh {
+  if (Get-Command pwsh -ErrorAction SilentlyContinue) { return $true }
+  return Test-Path (Join-Path (Join-Path $env:ProgramFiles 'PowerShell') '7\pwsh.exe')
+}
+$PwshState = 'PowerShell 7 (pwsh) is installed.'
+if (-not (Test-Pwsh)) {
+  if (-not $InstallSystemPackages) {
+    $PwshState = 'PowerShell 7 (pwsh) is missing and AESIR_INSTALL_SYSTEM_PACKAGES=0 forbids installing it.'
+  }
+  elseif (Get-Command winget -ErrorAction SilentlyContinue) {
+    Write-Host 'aesir install: PowerShell 7 is not installed; installing it with winget (a UAC prompt may appear).'
+    & winget install --id Microsoft.PowerShell --exact --source winget --silent --accept-package-agreements --accept-source-agreements | Out-Null
+    $PwshState = if (Test-Pwsh) { 'PowerShell 7 (pwsh) was installed now.' } else { 'PowerShell 7 (pwsh) could not be installed; tool output falls back to Windows PowerShell 5.1.' }
+  }
+  else {
+    $PwshState = 'PowerShell 7 (pwsh) is missing and winget is unavailable; install it from https://aka.ms/powershell to keep non-ASCII tool output intact.'
+  }
+}
+
 Write-Host ''
 Write-Host "AESIR Red $Version is installed. Start it with:  aesir"
 Write-Host ''
@@ -94,9 +138,9 @@ Write-Note 'Run aesir from PowerShell or Windows Terminal, not cmd.exe: a .cmd s
 Write-Note '  cmd.exe ask "Terminate batch job (Y/N)?" after every Ctrl+C.'
 Write-Note 'A model API key is required — the terminal opens a provider setup on first launch.'
 Write-Note "Settings and sessions live in $env:USERPROFILE\.aesir\home."
-Write-Note 'PowerShell 7 is recommended but not required; Windows PowerShell 5.1 writes the'
-Write-Note '  OEM code page and garbles non-ASCII tool output.'
-Write-Note 'Sandbox scope on Windows: writes are confined by a WRITE_RESTRICTED token, but'
-Write-Note '  reads, network and process visibility are NOT. The first confined run in a large'
-Write-Note '  workspace blocks once while ACEs propagate, and those ACEs are never revoked —'
-Write-Note '  so do not start aesir in your home directory or a drive root.'
+Write-Note $PwshState
+Write-Note 'Shell and filesystem tools run sandboxed with a write-restricted token, which is'
+Write-Note '  built into the archive: writes are confined, but reads, network and process'
+Write-Note '  visibility are NOT. The first confined run in a large workspace blocks once while'
+Write-Note '  ACEs propagate, and those ACEs are never revoked — so do not start aesir in your'
+Write-Note '  home directory or a drive root.'

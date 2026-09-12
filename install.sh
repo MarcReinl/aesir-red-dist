@@ -5,8 +5,17 @@
 #
 # Downloads a bundled-runtime archive — an official Node runtime plus the whole
 # installed plugin closure — verifies its checksum, extracts it under
-# ~/.aesir/versions/<version>, and links `aesir` onto PATH. Nothing is compiled
-# and no package manager runs on this machine.
+# ~/.aesir/versions/<version>, links `aesir` onto PATH, checks that the
+# launcher starts, and makes sure the agent's sandbox has a working backend:
+# on Linux that is bubblewrap or the bundled Landlock launcher, and when
+# neither works bubblewrap is installed through the distribution's package
+# manager. Nothing is compiled.
+#
+# Environment:
+#   AESIR_VERSION                  release to install (default: the one below)
+#   AESIR_ROOT                     install root (default: ~/.aesir)
+#   AESIR_INSTALL_SYSTEM_PACKAGES  set to 0 to never run the package manager;
+#                                  the installer then only reports what is missing
 #
 # The whole body sits inside main(), called on the last line, so a truncated
 # download cannot execute a partial script.
@@ -15,6 +24,7 @@ set -eu
 AESIR_VERSION="${AESIR_VERSION:-0.1.1-rc.2}"
 AESIR_REPO="${AESIR_REPO:-MarcReinl/aesir-red-dist}"
 AESIR_ROOT="${AESIR_ROOT:-$HOME/.aesir}"
+AESIR_INSTALL_SYSTEM_PACKAGES="${AESIR_INSTALL_SYSTEM_PACKAGES:-1}"
 # The lowest macOS the bundled Node runtime declares support for.
 MACOS_FLOOR='13.5'
 # node-pty's Linux prebuilds reference this glibc symbol version.
@@ -27,6 +37,10 @@ die() {
 
 note() {
   echo "  $1"
+}
+
+warn() {
+  echo "aesir install: WARNING — $1" >&2
 }
 
 # Refuse a C library the archive was never built for, by name, rather than
@@ -204,6 +218,132 @@ link_launcher() {
   fi
 }
 
+# Whether a terminal is attached to answer a sudo prompt. The script's own
+# stdin is the curl pipe, and sudo reads the password from the controlling
+# terminal, not from stdin, so the pipe is not what decides.
+have_tty() {
+  ( exec </dev/tty ) 2>/dev/null
+}
+
+# Run one command as root: directly when already root, through sudo otherwise.
+# Fails without running anything when sudo is absent or would need a password
+# no terminal can answer.
+run_as_root() {
+  if [ "$(id -u)" = "0" ]; then "$@"; return; fi
+  command -v sudo >/dev/null 2>&1 || return 127
+  if sudo -n true 2>/dev/null; then sudo "$@"; return; fi
+  have_tty || return 126
+  note "sudo needs your password to install system packages."
+  sudo "$@"
+}
+
+# Install packages with whichever package manager the distribution has. The
+# package names are the same across every manager listed. musl distributions
+# were already refused, so apk is deliberately absent. The manager's own
+# output goes to a log that is shown only when it fails; sudo's password
+# prompt goes to the terminal and is unaffected.
+install_packages() {
+  [ "$AESIR_INSTALL_SYSTEM_PACKAGES" != "0" ] || return 1
+  log="$tmp/packages.log"
+  if command -v apt-get >/dev/null 2>&1; then
+    run_as_root apt-get update -qq >"$log" 2>&1 || true
+    run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$@" >"$log" 2>&1
+  elif command -v dnf >/dev/null 2>&1; then
+    run_as_root dnf install -y -q "$@" >"$log" 2>&1
+  elif command -v yum >/dev/null 2>&1; then
+    run_as_root yum install -y -q "$@" >"$log" 2>&1
+  elif command -v zypper >/dev/null 2>&1; then
+    run_as_root zypper --non-interactive --quiet install "$@" >"$log" 2>&1
+  elif command -v pacman >/dev/null 2>&1; then
+    run_as_root pacman -Sy --noconfirm --needed --quiet "$@" >"$log" 2>&1
+  elif command -v xbps-install >/dev/null 2>&1; then
+    run_as_root xbps-install -Sy "$@" >"$log" 2>&1
+  else
+    return 1
+  fi || { cat "$log" >&2; return 1; }
+}
+
+# Bound a probe so a hung backend cannot hang the installer; coreutils'
+# timeout is absent on macOS, where the probes have no way to hang.
+bounded() {
+  if command -v timeout >/dev/null 2>&1; then timeout 10 "$@"; else "$@"; fi
+}
+
+# The terminal's own bubblewrap probe: the read-only profile it confines shell
+# tools with, run around `true`. A distribution that ships bwrap but forbids
+# unprivileged user namespaces fails here exactly as it would at first use.
+bwrap_usable() {
+  command -v bwrap >/dev/null 2>&1 || return 1
+  bounded bwrap --ro-bind / / --dev /dev --unshare-pid --proc /proc --die-with-parent -- true >/dev/null 2>&1
+}
+
+# The terminal's own Landlock probe: the archive's launcher enforces a ruleset
+# on itself and exits 0 only when the running kernel honours it.
+landlock_usable() {
+  launcher="$1/node_modules/@aesir-red/node-addon-landlock-run-linux-$arch/bin/landlock-run"
+  [ -x "$launcher" ] || return 1
+  bounded "$launcher" --probe >/dev/null 2>&1
+}
+
+# Leave Linux with a working sandbox. The terminal refuses every shell and
+# filesystem tool call without one, so this is part of installing, not advice
+# for later. Sets $sandbox to the backend in use, or empty when none works.
+ensure_linux_sandbox() {
+  destination=$1
+  sandbox=''
+  if bwrap_usable; then sandbox='bubblewrap'; return 0; fi
+  if landlock_usable "$destination"; then sandbox='Landlock (bundled launcher, this kernel enforces it)'; return 0; fi
+  if [ "$AESIR_INSTALL_SYSTEM_PACKAGES" = "0" ]; then
+    warn "no usable sandbox backend, and AESIR_INSTALL_SYSTEM_PACKAGES=0 forbids installing bubblewrap."
+    return 0
+  fi
+  echo "aesir install: no usable sandbox backend on this kernel; installing bubblewrap."
+  if install_packages bubblewrap; then
+    if bwrap_usable; then sandbox='bubblewrap (installed now)'; return 0; fi
+    warn "bubblewrap installed but cannot create a sandbox here (unprivileged user
+  namespaces may be disabled on this host)."
+  else
+    warn "could not install bubblewrap. Install it yourself, then start aesir:
+    Debian/Ubuntu: sudo apt-get install bubblewrap
+    Fedora/RHEL:   sudo dnf install bubblewrap
+    openSUSE:      sudo zypper install bubblewrap
+    Arch:          sudo pacman -S bubblewrap"
+  fi
+}
+
+# bash is what the shell tool runs commands in.
+ensure_bash() {
+  command -v bash >/dev/null 2>&1 && return 0
+  echo "aesir install: bash is not installed; installing it for the shell tool."
+  if ! install_packages bash || ! command -v bash >/dev/null 2>&1; then
+    warn "bash is missing and could not be installed; the shell tool needs it on PATH."
+  fi
+}
+
+# macOS confines shell tools with the Seatbelt sandbox that ships with the
+# system; the same read-only profile the terminal uses is tried here so a
+# management policy that disables sandbox-exec is reported now, not at first use.
+ensure_macos_sandbox() {
+  sandbox=''
+  if bounded /usr/bin/sandbox-exec -p '(version 1) (allow default) (deny file-write*)' -- /usr/bin/true >/dev/null 2>&1; then
+    sandbox='Seatbelt (built into macOS)'
+  else
+    warn "sandbox-exec is unavailable on this Mac, so shell and filesystem tool calls will be refused."
+  fi
+}
+
+# Start the installed launcher once. This runs the bundled Node against the
+# archive and answers before any plugin loads, so it proves the runtime and
+# the launcher without needing a model or a workspace.
+verify_launcher() {
+  destination=$1
+  if ! installed_version=$("$destination/bin/aesir" --version 2>&1); then
+    die "the installed launcher failed to start:
+  $installed_version
+  Nothing else was changed; re-run this installer after fixing the cause."
+  fi
+}
+
 main() {
   detect_target
   filename="aesir-$AESIR_VERSION-$platform-$arch.tar.gz"
@@ -243,19 +383,27 @@ main() {
   tar -xzf "$tmp/$filename" -C "$destination" --strip-components=1
   [ "$platform" = "darwin" ] && xattr -dr com.apple.quarantine "$destination" 2>/dev/null || true
 
+  verify_launcher "$destination"
   link_launcher "$destination"
+
+  if [ "$platform" = "linux" ]; then
+    ensure_bash
+    ensure_linux_sandbox "$destination"
+  else
+    ensure_macos_sandbox
+  fi
 
   echo ""
   echo "AESIR Red $AESIR_VERSION is installed. Start it with:  aesir"
   echo ""
   note "A model API key is required — the terminal opens a provider setup on first launch."
   note "Settings and sessions live in $AESIR_ROOT/home, separate from a source checkout's ~/.dsh."
-  if [ "$platform" = "linux" ]; then
-    note "Shell tools need a sandbox: install bubblewrap (apt install bubblewrap /"
-    note "  dnf install bubblewrap) for the preferred rung. The bundled Landlock launcher"
-    note "  is the automatic fallback on kernel 5.13+. Without either, tool calls are refused."
-    note "'bash' must be on PATH for the shell tool to work."
+  if [ -n "$sandbox" ]; then
+    note "Shell and filesystem tools run sandboxed with: $sandbox."
   else
+    note "Shell and filesystem tools are REFUSED until a sandbox backend works (see the warning above)."
+  fi
+  if [ "$platform" = "darwin" ]; then
     note "On macOS below 15.0, 'aesir --profile headless' and 'aesir web' fail at boot."
     note "  The default 'aesir' terminal is unaffected."
   fi
