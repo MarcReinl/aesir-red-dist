@@ -381,7 +381,7 @@ main() {
   # Mode bits are load-bearing: node, rg, spawn-helper and landlock-run must
   # stay executable, so --no-same-permissions must never be added here.
   tar -xzf "$tmp/$filename" -C "$destination" --strip-components=1
-  [ "$platform" = "darwin" ] && xattr -dr com.apple.quarantine "$destination" 2>/dev/null || true
+  if [ "$platform" = "darwin" ]; then xattr -dr com.apple.quarantine "$destination" 2>/dev/null || true; fi
 
   verify_launcher "$destination"
   link_launcher "$destination"
