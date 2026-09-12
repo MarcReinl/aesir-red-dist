@@ -21,7 +21,7 @@
 # download cannot execute a partial script.
 set -eu
 
-AESIR_VERSION="${AESIR_VERSION:-0.1.1-rc.2}"
+AESIR_VERSION="${AESIR_VERSION:-0.1.1-rc.3}"
 AESIR_REPO="${AESIR_REPO:-MarcReinl/aesir-red-dist}"
 AESIR_ROOT="${AESIR_ROOT:-$HOME/.aesir}"
 AESIR_INSTALL_SYSTEM_PACKAGES="${AESIR_INSTALL_SYSTEM_PACKAGES:-1}"
@@ -381,7 +381,7 @@ main() {
   # Mode bits are load-bearing: node, rg, spawn-helper and landlock-run must
   # stay executable, so --no-same-permissions must never be added here.
   tar -xzf "$tmp/$filename" -C "$destination" --strip-components=1
-  [ "$platform" = "darwin" ] && xattr -dr com.apple.quarantine "$destination" 2>/dev/null || true
+  if [ "$platform" = "darwin" ]; then xattr -dr com.apple.quarantine "$destination" 2>/dev/null || true; fi
 
   verify_launcher "$destination"
   link_launcher "$destination"
