@@ -23,10 +23,29 @@ installer above works unchanged.
 ## What the installer does
 
 It downloads a bundled-runtime archive for your platform, verifies it against `SHA256SUMS`,
-extracts it to `~/.aesir/versions/<version>`, and links `aesir` onto your PATH. The archive
-carries its own Node runtime, so nothing is compiled and no package manager runs.
+extracts it to `~/.aesir/versions/<version>`, links `aesir` onto your PATH, starts the launcher
+once to prove the runtime works, and makes sure the agent's sandbox has a working backend. The
+archive carries its own Node runtime, so nothing is compiled.
 
 Published targets: `linux-x64`, `linux-arm64`, `darwin-arm64`, `darwin-x64`, `win32-x64`.
+
+## System packages
+
+The agent's shell and filesystem tools only run inside a sandbox, so the installer ends with one
+in place:
+
+- **Linux** probes bubblewrap and the archive's Landlock launcher exactly as the terminal does.
+  When neither works, it installs `bubblewrap` with your distribution's package manager
+  (`apt-get`, `dnf`, `yum`, `zypper`, `pacman` or `xbps-install`), asking for your sudo password
+  on the terminal if one is needed. `bash` is installed the same way if it is missing.
+- **macOS** uses the Seatbelt sandbox built into the system; nothing is installed.
+- **Windows** uses a write-restricted token built into the archive; nothing is installed for the
+  sandbox. PowerShell 7 is installed with `winget` when it is missing, because the shell tool runs
+  commands through it and Windows PowerShell 5.1 garbles non-ASCII output.
+
+Set `AESIR_INSTALL_SYSTEM_PACKAGES=0` to forbid every package install. The installer then reports
+what is missing and the command that installs it, and the terminal refuses shell and filesystem
+tool calls until a sandbox backend works.
 
 Alpine and other musl-based distributions are not supported — the bundled runtime and its
 native addons are glibc builds. macOS 13.5 is the minimum.
