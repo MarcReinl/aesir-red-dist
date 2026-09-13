@@ -21,7 +21,7 @@
 # download cannot execute a partial script.
 set -eu
 
-AESIR_VERSION="${AESIR_VERSION:-0.1.1-rc.6}"
+AESIR_VERSION="${AESIR_VERSION:-0.1.1-rc.7}"
 AESIR_REPO="${AESIR_REPO:-MarcReinl/aesir-red-dist}"
 AESIR_ROOT="${AESIR_ROOT:-$HOME/.aesir}"
 AESIR_INSTALL_SYSTEM_PACKAGES="${AESIR_INSTALL_SYSTEM_PACKAGES:-1}"
@@ -404,7 +404,7 @@ main() {
     note "Shell and filesystem tools are REFUSED until a sandbox backend works (see the warning above)."
   fi
   if [ "$platform" = "darwin" ]; then
-    note "On macOS below 15.0, 'aesir --profile headless' and 'aesir web' fail at boot."
+    note "On macOS below 15.0, 'aesir --profile headless' and 'aesir --ui' fail at boot."
     note "  The default 'aesir' terminal is unaffected."
   fi
 }
