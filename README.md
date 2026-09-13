@@ -9,7 +9,8 @@ harness for authorized security testing.
 curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install.sh | sh
 ```
 
-Open a new shell, then run `aesir`.
+Open a new shell, then run `aesir`. For the browser UI, run `aesir --ui`; it opens in your
+default browser and shares the terminal's settings, credentials and sessions.
 
 ## Windows (experimental)
 
@@ -53,7 +54,8 @@ native addons are glibc builds. macOS 13.5 is the minimum.
 ## First launch
 
 A model API key is required. `aesir` opens provider setup on first launch when no credential
-is configured; anything you typed stays in the composer while you configure a model.
+is configured; anything you typed stays in the composer while you configure a model. Configure
+the model in the terminal once, and `aesir --ui` starts already configured.
 
 Settings, credentials and sessions live in `~/.aesir/home`.
 
