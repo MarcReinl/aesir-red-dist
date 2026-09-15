@@ -21,7 +21,7 @@
 # download cannot execute a partial script.
 set -eu
 
-AESIR_VERSION="${AESIR_VERSION:-0.1.1-rc.8}"
+AESIR_VERSION="${AESIR_VERSION:-0.1.5-rc.2}"
 AESIR_REPO="${AESIR_REPO:-MarcReinl/aesir-red-dist}"
 AESIR_ROOT="${AESIR_ROOT:-$HOME/.aesir}"
 AESIR_INSTALL_SYSTEM_PACKAGES="${AESIR_INSTALL_SYSTEM_PACKAGES:-1}"
@@ -280,7 +280,7 @@ bwrap_usable() {
 # The terminal's own Landlock probe: the archive's launcher enforces a ruleset
 # on itself and exits 0 only when the running kernel honours it.
 landlock_usable() {
-  launcher="$1/node_modules/@aesir-red/node-addon-landlock-run-linux-$arch/bin/landlock-run"
+  launcher="$1/node_modules/@aesir-red/node-addon-system-linux-$arch/bin/landlock-run"
   [ -x "$launcher" ] || return 1
   bounded "$launcher" --probe >/dev/null 2>&1
 }
@@ -336,12 +336,25 @@ ensure_macos_sandbox() {
 # archive and answers before any plugin loads, so it proves the runtime and
 # the launcher without needing a model or a workspace.
 verify_launcher() {
-  destination=$1
-  if ! installed_version=$("$destination/bin/aesir" --version 2>&1); then
+  if ! installed_version=$("$1/bin/aesir" --version 2>&1); then
     die "the installed launcher failed to start:
   $installed_version
   Nothing else was changed; re-run this installer after fixing the cause."
   fi
+  [ "$installed_version" = "$AESIR_VERSION" ] || die "the launcher reported '$installed_version', expected $AESIR_VERSION."
+}
+
+# Restore the previous version if the final rename fails or installation is interrupted.
+cleanup_install() {
+  if [ -n "$pending" ] && [ -d "$pending/previous" ] && [ ! -e "$destination" ]; then
+    if ! mv "$pending/previous" "$destination"; then
+      warn "could not restore the previous version; it remains at $pending/previous."
+      rm -rf "$tmp"
+      return
+    fi
+  fi
+  if [ -n "$pending" ]; then rm -rf "$pending"; fi
+  rm -rf "$tmp"
 }
 
 main() {
@@ -360,7 +373,10 @@ main() {
   command -v tar >/dev/null 2>&1 || die "tar is required."
 
   tmp=$(mktemp -d)
-  trap 'rm -rf "$tmp"' EXIT INT TERM
+  pending=''
+  trap 'cleanup_install' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
 
   # A missing asset is the one failure a user is most likely to hit, so it
   # reports which platform is unavailable and what is published, rather than a
@@ -376,14 +392,16 @@ main() {
   curl -fsSL "$base/SHA256SUMS" -o "$tmp/SHA256SUMS" || die "could not download $base/SHA256SUMS"
   verify_checksum "$tmp/$filename" "$tmp/SHA256SUMS" "$filename"
 
-  rm -rf "$destination"
-  mkdir -p "$destination"
-  # Mode bits are load-bearing: node, rg, spawn-helper and landlock-run must
-  # stay executable, so --no-same-permissions must never be added here.
-  tar -xzf "$tmp/$filename" -C "$destination" --strip-components=1
-  if [ "$platform" = "darwin" ]; then xattr -dr com.apple.quarantine "$destination" 2>/dev/null || true; fi
+  mkdir -p "$AESIR_ROOT/versions"
+  pending=$(mktemp -d "$AESIR_ROOT/versions/.install-XXXXXX")
+  mkdir "$pending/payload"
+  # Preserve executable modes and validate the replacement before moving the installed version.
+  tar -xzf "$tmp/$filename" -C "$pending/payload" --strip-components=1
+  if [ "$platform" = "darwin" ]; then xattr -dr com.apple.quarantine "$pending/payload" 2>/dev/null || true; fi
 
-  verify_launcher "$destination"
+  verify_launcher "$pending/payload"
+  if [ -e "$destination" ]; then mv "$destination" "$pending/previous"; fi
+  mv "$pending/payload" "$destination"
   link_launcher "$destination"
 
   if [ "$platform" = "linux" ]; then
@@ -397,15 +415,14 @@ main() {
   echo "AESIR Red $AESIR_VERSION is installed. Start it with:  aesir"
   echo ""
   note "A model API key is required — the terminal opens a provider setup on first launch."
-  note "Settings and sessions live in $AESIR_ROOT/home, separate from a source checkout's ~/.dsh."
+  note "Settings and sessions default to $HOME/.aesir/home; DSH_HOME overrides that location."
   if [ -n "$sandbox" ]; then
     note "Shell and filesystem tools run sandboxed with: $sandbox."
   else
     note "Shell and filesystem tools are REFUSED until a sandbox backend works (see the warning above)."
   fi
   if [ "$platform" = "darwin" ]; then
-    note "On macOS below 15.0, 'aesir --profile headless' and 'aesir --ui' fail at boot."
-    note "  The default 'aesir' terminal is unaffected."
+    note "Some native addons require macOS 15.0; older macOS versions need compatibility testing."
   fi
 }
 
