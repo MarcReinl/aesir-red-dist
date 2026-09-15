@@ -7,8 +7,7 @@
 # %LOCALAPPDATA%\aesir\versions\<version>, puts `aesir` on PATH, checks that
 # the launcher starts, and installs PowerShell 7 through winget when it is
 # missing, since the shell tool runs commands through it. The sandbox on
-# Windows is built into the archive (a write-restricted token) and needs no
-# extra install.
+# Windows requires native compatibility verification before support is claimed.
 #
 # Environment:
 #   AESIR_VERSION                  release to install (default: the one below)
@@ -21,7 +20,7 @@
 # its ConPTY backend and its key handling are unproven here.
 $ErrorActionPreference = 'Stop'
 
-$Version = if ($env:AESIR_VERSION) { $env:AESIR_VERSION } else { '0.1.1-rc.5' }
+$Version = if ($env:AESIR_VERSION) { $env:AESIR_VERSION } else { '0.1.5-rc.2' }
 $Repo = if ($env:AESIR_REPO) { $env:AESIR_REPO } else { 'MarcReinl/aesir-red-dist' }
 $Root = if ($env:AESIR_ROOT) { $env:AESIR_ROOT } else { Join-Path $env:LOCALAPPDATA 'aesir' }
 $InstallSystemPackages = $env:AESIR_INSTALL_SYSTEM_PACKAGES -ne '0'
@@ -32,7 +31,7 @@ function Write-Warn([string] $Text) { Write-Host "aesir install: WARNING — $Te
 Write-Host ''
 Write-Host '  AESIR Red for Windows is EXPERIMENTAL.' -ForegroundColor Yellow
 Write-Host '  The interactive terminal has never been verified on Windows by CI.' -ForegroundColor Yellow
-Write-Host '  Report what breaks; prefer WSL for a proven experience.' -ForegroundColor Yellow
+Write-Host '  Windows and Linux compatibility require platform validation.' -ForegroundColor Yellow
 Write-Host ''
 
 if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
@@ -50,6 +49,9 @@ if (-not (Get-Command tar.exe -ErrorAction SilentlyContinue)) {
 $Filename = "aesir-$Version-win32-x64.zip"
 $Base = "https://github.com/$Repo/releases/download/aesir-v$Version"
 $Destination = Join-Path (Join-Path $Root 'versions') $Version
+$Pending = Join-Path (Join-Path $Root 'versions') ('.install-' + [System.Guid]::NewGuid().ToString('N'))
+$Payload = Join-Path $Pending 'payload'
+$Previous = Join-Path $Pending 'previous'
 $Temp = Join-Path ([System.IO.Path]::GetTempPath()) ("aesir-" + [System.Guid]::NewGuid().ToString('N'))
 
 New-Item -ItemType Directory -Path $Temp -Force | Out-Null
@@ -71,29 +73,34 @@ try {
   }
   Unblock-File -Path $Archive
 
-  if (Test-Path $Destination) { Remove-Item -Recurse -Force $Destination }
-  New-Item -ItemType Directory -Path $Destination -Force | Out-Null
-  & tar.exe -xf $Archive -C $Destination --strip-components=1
+  New-Item -ItemType Directory -Path $Payload -Force | Out-Null
+  & tar.exe -xf $Archive -C $Payload --strip-components=1
   if ($LASTEXITCODE -ne 0) { throw "aesir install: extraction failed with exit $LASTEXITCODE." }
+
+  $NodeExe = Join-Path (Join-Path $Payload 'node') 'node.exe'
+  $Launcher = Join-Path $Payload 'aesir-launch.mjs'
+  $Installed = & $NodeExe $Launcher --version 2>&1
+  if ($LASTEXITCODE -ne 0 -or ($Installed -join "`n").Trim() -ne $Version) {
+    throw "aesir install: replacement launcher did not report $Version; the installed version is unchanged.`n  $Installed"
+  }
+  if (Test-Path $Destination) { Move-Item $Destination $Previous }
+  Move-Item $Payload $Destination
 }
 finally {
+  if ((Test-Path $Previous) -and -not (Test-Path $Destination)) {
+    Move-Item $Previous $Destination
+  }
+  if (Test-Path $Pending) { Remove-Item -Recurse -Force $Pending }
   Remove-Item -Recurse -Force $Temp -ErrorAction SilentlyContinue
-}
-
-# Start the installed launcher once: the bundled Node against the archive
-# answers --version before any plugin loads, which proves the runtime and the
-# launcher without a model or a workspace.
-$NodeExe = Join-Path (Join-Path $Destination 'node') 'node.exe'
-$Launcher = Join-Path $Destination 'aesir-launch.mjs'
-$Installed = & $NodeExe $Launcher --version 2>&1
-if ($LASTEXITCODE -ne 0) {
-  throw "aesir install: the installed launcher failed to start:`n  $Installed`n  Nothing else was changed; re-run this installer after fixing the cause."
 }
 
 $BinDir = Join-Path $Root 'bin'
 New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
 foreach ($shim in @('aesir.cmd', 'aesir.ps1')) {
-  Copy-Item -Force (Join-Path (Join-Path $Destination 'bin') $shim) (Join-Path $BinDir $shim)
+  # Installed wrappers live outside the archive, so their relative targets include the version directory.
+  $Source = Get-Content -Raw (Join-Path (Join-Path $Destination 'bin') $shim)
+  $Source = $Source.Replace('..\node', "..\versions\$Version\node").Replace('..\aesir-launch.mjs', "..\versions\$Version\aesir-launch.mjs")
+  [System.IO.File]::WriteAllText((Join-Path $BinDir $shim), $Source, [System.Text.UTF8Encoding]::new($false))
 }
 
 # Read the RAW user PATH. Reading $env:Path would merge the machine value in and
@@ -139,8 +146,4 @@ Write-Note '  cmd.exe ask "Terminate batch job (Y/N)?" after every Ctrl+C.'
 Write-Note 'A model API key is required — the terminal opens a provider setup on first launch.'
 Write-Note "Settings and sessions live in $env:USERPROFILE\.aesir\home."
 Write-Note $PwshState
-Write-Note 'Shell and filesystem tools run sandboxed with a write-restricted token, which is'
-Write-Note '  built into the archive: writes are confined, but reads, network and process'
-Write-Note '  visibility are NOT. The first confined run in a large workspace blocks once while'
-Write-Note '  ACEs propagate, and those ACEs are never revoked — so do not start aesir in your'
-Write-Note '  home directory or a drive root.'
+Write-Note 'Native Windows sandbox and interactive terminal behavior require platform validation.'
