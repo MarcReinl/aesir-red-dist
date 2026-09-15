@@ -2,8 +2,8 @@
 #
 #   irm https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install.ps1 | iex
 #
-# Downloads a bundled-runtime archive — an official Node runtime plus the whole
-# installed plugin closure — verifies its checksum, extracts it under
+# Downloads a bundled-runtime archive (an official Node runtime plus the whole
+# installed plugin closure), verifies its checksum, extracts it under
 # %LOCALAPPDATA%\aesir\versions\<version>, puts `aesir` on PATH, checks that
 # the launcher starts, and installs PowerShell 7 through winget when it is
 # missing, since the shell tool runs commands through it. The sandbox on
@@ -26,7 +26,7 @@ $Root = if ($env:AESIR_ROOT) { $env:AESIR_ROOT } else { Join-Path $env:LOCALAPPD
 $InstallSystemPackages = $env:AESIR_INSTALL_SYSTEM_PACKAGES -ne '0'
 
 function Write-Note([string] $Text) { Write-Host "  $Text" }
-function Write-Warn([string] $Text) { Write-Host "aesir install: WARNING — $Text" -ForegroundColor Yellow }
+function Write-Warn([string] $Text) { Write-Host "aesir install: WARNING: $Text" -ForegroundColor Yellow }
 
 Write-Host ''
 Write-Host '  AESIR Red for Windows is EXPERIMENTAL.' -ForegroundColor Yellow
@@ -113,7 +113,19 @@ if (($RawPath -split ';') -notcontains $BinDir) {
   $Kind = if ($RawPath -like '*%*') { 'ExpandString' } else { 'String' }
   $Updated = if ([string]::IsNullOrEmpty($RawPath)) { $BinDir } else { "$RawPath;$BinDir" }
   Set-ItemProperty -Path 'HKCU:\Environment' -Name 'Path' -Value $Updated -Type $Kind
-  Write-Note "Added $BinDir to your user PATH — open a new terminal for it to take effect."
+  Write-Note "Added $BinDir to your user PATH, which new terminals read."
+}
+
+# A process reads the registry PATH once, when it starts, so any terminal opened
+# earlier keeps its old value, including the one running this installer, and
+# including every terminal opened since an earlier install wrote the entry. That
+# is why the note above is not enough on its own: an upgrade finds the entry
+# already present, says nothing, and leaves `aesir` unresolvable in the very
+# session that just installed it. This script runs inside the user's shell, so
+# it can put the directory on the live PATH and make the command work now.
+if (($env:Path -split ';') -notcontains $BinDir) {
+  $env:Path = "$BinDir;$env:Path"
+  Write-Note 'Added it to this terminal too, so aesir works here right away.'
 }
 
 # The shell tool runs commands through PowerShell 7 (pwsh) and falls back to
@@ -143,7 +155,7 @@ Write-Host "AESIR Red $Version is installed. Start it with:  aesir"
 Write-Host ''
 Write-Note 'Run aesir from PowerShell or Windows Terminal, not cmd.exe: a .cmd shim makes'
 Write-Note '  cmd.exe ask "Terminate batch job (Y/N)?" after every Ctrl+C.'
-Write-Note 'A model API key is required — the terminal opens a provider setup on first launch.'
+Write-Note 'A model API key is required; the terminal opens a provider setup on first launch.'
 Write-Note "Settings and sessions live in $env:USERPROFILE\.aesir\home."
 Write-Note $PwshState
 Write-Note 'Native Windows sandbox and interactive terminal behavior require platform validation.'
