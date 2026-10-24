@@ -41,7 +41,7 @@ The TUI passed its eight native package jobs: macOS ARM64, macOS Intel, Linux AR
 
 AESIR Term passed 310 source checks and 49 bundled-runtime checks per architecture. Its universal macOS build is signed ad hoc and is not notarized; Intel execution was checked through Rosetta. Linux package installation, bundled-runtime and virtual-display GUI checks passed in Debian 12 containers, with x86-64 emulated on ARM64. These checks do not establish native Intel GUI, physical GPU or Wayland behavior.
 
-Desktop and Host packages have native build, startup and installation checks for each target. `BUILD-INFO.json` records the exact build and qualification revisions, handoff checks and remaining limits. The Desktop source snapshot includes the current product integrations; the qualification update corrects stale shared-editor assertions and the new pentest skill inventory without changing production code.
+Desktop and Host packages passed native build, startup and installation checks on all four targets. Native TUI-to-Desktop handoff passed cold and warm cases on macOS ARM64, preserving the exact session and stopping the managed Host when its final attached window closed. Intel and Linux handoff were not repeated. `BUILD-INFO.json` records exact build and qualification revisions, checks and remaining limits.
 
 ## Earlier releases
 
