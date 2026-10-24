@@ -9,11 +9,29 @@ Download [**0.2.0-rc.3**](https://github.com/MarcReinl/aesir-red-dist/releases/t
 | Component | What it does | What to install |
 | --- | --- | --- |
 | **AESIR Red Desktop** | Graphical conversations, workspaces, tools, files and visible browser automation | A macOS DMG or Linux AppImage; its Host and runtimes are bundled |
-| **AESIR Red TUI** | Full-screen terminal client for the AESIR Host | The portable TUI `.tgz` and a compatible Host; the Host archive supplies Node/npm |
+| **AESIR Red TUI** | Full-screen terminal client for the AESIR Host | The curl installer below supplies the client and a private Node/Host runtime |
 | **AESIR Host runtime** | Runs the local agent and serves its Web/TUI APIs | The archive matching your OS and CPU |
-| **AESIR Term** | Dedicated kitty-based terminal emulator with an AESIR TUI pane, search, notebooks and shell tools | Its universal macOS DMG or Debian-family Linux package; install the TUI and Host separately |
+| **AESIR Term** | Dedicated kitty-based terminal emulator with an AESIR TUI pane, search, notebooks and shell tools | Its universal macOS DMG or Debian-family Linux package; the TUI installer supplies its client and Host |
 
-Desktop is the shortest route to the graphical application. For a terminal workflow, install the Host runtime and TUI, then run the TUI in AESIR Term or another terminal emulator. AESIR Term's agent pane launches the configured AESIR TUI and its Conversations view lists AESIR Host sessions.
+Desktop is the shortest route to the graphical application. For a terminal workflow, install the TUI below, then run it in AESIR Term or another terminal emulator. AESIR Term's agent pane launches the configured AESIR TUI and its Conversations view lists AESIR Host sessions.
+
+## Install the TUI
+
+On macOS or Linux:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install-tui.sh | sh
+```
+
+The installer selects the matching `0.2.0-rc.3` client and private Node/Host runtime for your OS and CPU. It needs no sudo, system Node/npm or source checkout, and installation starts no Host. Close and reopen your shell, or run the PATH command printed by the installer, then run:
+
+```sh
+aesir
+```
+
+It installs `aesir` and `aesir-tui` under `${XDG_DATA_HOME:-$HOME/.local/share}/aesir-cli/bin` and adds that directory to bash/zsh PATH once. Existing explicit, environment and saved Host connections keep precedence; otherwise the client uses its private Host and asks you to trust the workspace. A running Desktop is not discovered automatically.
+
+[Installation options, manual alternatives, updates and removal](docs/INSTALL.md#aesir-red-tui-and-host) cover custom prefixes and client-only installation with an existing Node/npm and Host connection. Rerun the curl command to update; your sessions and TUI preferences are preserved.
 
 ## Platforms
 

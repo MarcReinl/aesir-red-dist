@@ -20,7 +20,7 @@ Create `install-tui.sh`. Options: `--version VERSION`, `--prefix ABSOLUTE_DIRECT
 
 ### Task 3: Live public artifact smoke and CI
 
-Create `tests/live_install.sh`, using a disposable HOME, prefix and workspace, with inherited Host/model credentials removed. Install actual public artifacts through the script, verify both aliases and the generated catalog, and run the keyless Host smoke with folder trust scoped to that workspace. Check teardown. Create `.github/workflows/test-installer.yml` for native macOS ARM64/Intel and Ubuntu 24.04 ARM64/x64. Run the local live smoke once after regressions pass. Do not claim foreign targets passed until their jobs finish.
+Create `tests/live_install.py`, using a disposable HOME, prefix and workspace, with inherited Host/model credentials removed. Install actual public artifacts through the script, verify both aliases and the generated catalog, and run the keyless Host smoke with folder trust scoped to that workspace. Check teardown. Create `.github/workflows/test-installer.yml` for native macOS ARM64/Intel and Ubuntu 24.04 ARM64/x64. Run the local live smoke once after regressions pass. Do not claim foreign targets passed until their jobs finish.
 
 ### Task 4: Public instructions and delivery
 

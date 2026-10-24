@@ -1,0 +1,39 @@
+name: TUI installer
+
+on:
+  push:
+    branches: [main, codex/tui-curl-installer]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: darwin-arm64
+            runner: macos-latest
+          - target: darwin-x64
+            runner: macos-15-intel
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+          - target: linux-x64
+            runner: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Shell syntax and installer regression tests
+        run: |
+          sh -n install-tui.sh
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Install public RC.3 and probe the bundled Host
+        run: python3 tests/live_install.py --target '${{ matrix.target }}' --report /tmp/aesir-installer-result.json
