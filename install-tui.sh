@@ -237,6 +237,12 @@ try {
 }
 const quote = value => "'" + value.replaceAll("'", "'\\''") + "'";
 const pathLine = `export PATH=${quote(join(base, 'bin'))}:"$PATH"`;
+const pathBlock = `case ":$PATH:" in
+  *:${quote(join(base, 'bin'))}:*) ;;
+  *)
+${pathLine}
+    ;;
+esac`;
 const shell = (process.env.SHELL ?? '').split('/').pop();
 const profiles = [];
 if (shell === 'bash') {
@@ -248,7 +254,7 @@ if (modifyPath === '1' && profiles.length) {
   for (const profile of profiles) {
     try {
       const before = exists(profile) ? fs.readFileSync(profile, 'utf8') : '';
-      if (!before.split('\n').includes(pathLine)) fs.appendFileSync(profile, `${before && !before.endsWith('\n') ? '\n' : ''}\n# AESIR CLI\n${pathLine}\n`, { mode: 0o600 });
+      if (!before.split('\n').includes(pathLine)) fs.appendFileSync(profile, `${before && !before.endsWith('\n') ? '\n' : ''}\n# AESIR CLI\n${pathBlock}\n`, { mode: 0o600 });
       console.log(`PATH configured in ${profile}.`);
     } catch (error) { console.error(`Could not update shell PATH: ${error.message}.`); }
   }

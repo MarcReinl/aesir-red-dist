@@ -262,6 +262,9 @@ class ReleaseFixture:
         write_file(self.preference, json.dumps(value) + '\n')
 
     def with_client_runtime(self):
+        target = subprocess.check_output([str(REAL_NODE), '-p', 'process.platform + "-" + process.arch'],
+                                         cwd=self.workspace, env=self.env, text=True, timeout=10).strip()
+        self.set_target(target)
         self.env['PATH'] = os.pathsep.join(map(str, (self.shims, self.client_tools, self.tools)))
 
 
@@ -485,6 +488,20 @@ class InstallerIntegrationTests(unittest.TestCase):
                     self.assertEqual(result.stdout.split(os.pathsep).count(str(fixture.prefix / 'bin')), 1)
                 finally:
                     fixture.close()
+
+    def test_bash_login_profile_sourcing_bashrc_adds_prefix_to_path_once(self):
+        self.fixture.env['SHELL'] = '/bin/bash'
+        write_file(self.fixture.home / '.bashrc', '# existing interactive configuration\n')
+        profile = self.fixture.home / '.bash_profile'
+        write_file(profile, 'if [ -f "$HOME/.bashrc" ]; then . "$HOME/.bashrc"; fi\n')
+        for _ in range(2):
+            self.install_ok()
+        env = {**self.fixture.env, 'BASH_ENV': str(self.fixture.root / 'absent-bash-env')}
+        result = subprocess.run(['/bin/bash', '--noprofile', '--norc', '-c', '. "$HOME/.bash_profile"; printf "%s" "$PATH"'],
+                                env=env, capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.split(os.pathsep).count(str(self.fixture.prefix / 'bin')), 1,
+                         'Sourcing a login profile that loads .bashrc duplicated the installed command directory')
 
     def test_no_modify_path_preserves_existing_shell_files(self):
         before = {}
