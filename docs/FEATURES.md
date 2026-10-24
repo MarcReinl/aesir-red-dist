@@ -1,6 +1,6 @@
 # Features and current state
 
-AESIR Red offers a graphical Desktop application and an official TUI over the same Host APIs. AESIR Term provides a dedicated terminal environment with a TUI agent pane. [Installation](INSTALL.md) explains these setups.
+AESIR Red offers a graphical Desktop application and an official TUI over the same Host APIs. [Installation](INSTALL.md) explains the Desktop and Host/TUI setups.
 
 ## AESIR Red Desktop
 
@@ -27,21 +27,12 @@ Delegated conversations have live activity and navigation controls. Files can be
 
 The TUI's advanced operation browser exposes the generated Host API catalog. An operation being listed does not mean every Host profile enables its capability. Browser pages and document viewers open through explicit external/native actions; graphical widgets do not render inside the terminal.
 
-## AESIR Term
-
-AESIR Term is a kitty-based terminal emulator with its own settings and component version. It adds resizable split panes, pane navigation, a command palette, right-click actions and themes. Its Tools panel offers project browsing, file-content search and Markdown notebooks with explicit command execution. Shell additions provide zsh command coloring, selection, completion menus and prompt status.
-
-The agent pane launches the separately installed **AESIR Red TUI**, using its configured Host, models, credentials and permissions. It follows the active shell's working directory and reopens selected AESIR Host conversations. The Conversations view reads the Host catalog through the TUI without sending a model request. The launcher recognizes the previous stock OpenCode command during upgrades and uses the AESIR TUI instead; custom commands remain configurable.
-
-Explain/fix is a separate optional overlay using an Ollama or API provider configured in Terminal settings. It shows the destination before sending command/output context and inserts a suggested command into the shell prompt for review. Ordinary terminal use does not require a model provider. AESIR Term is GPL-3.0 and carries kitty and bundled-component attribution.
-
 ## Release limits
 
 This is a release candidate. Check the selected release's notes for final artifact and qualification status.
 
 - The coordinated targets are macOS ARM64/Intel and Linux ARM64/x86-64. No native Windows artifacts are supplied by this release. WSL is not a separately qualified target.
 - The TUI needs Node/npm and a Host; the Host archive carries its own runtime.
-- AESIR Term does not bundle the TUI or Host. Its Linux delivery uses Debian packages requiring a graphical X11/Wayland session and OpenGL; Alpine/musl and 32-bit systems are unsupported.
 - Desktop browser control requires the Electron-backed Desktop Host. A TUI-managed Web Host does not acquire that capability merely because Desktop is installed.
 - Browser guest downloads, permission prompts and native popups are restricted. Screenshot use also depends on an image-capable model.
 - TUI-to-Desktop handoff currently requires a compatible local macOS/Linux Host. Linux needs an unpacked Desktop directory with `AESIR_DESKTOP_PATH` pointing to its executable; the AppImage alone is insufficient. Remote Hosts, reverse-proxy mounts and Windows are unsupported.
