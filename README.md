@@ -1,58 +1,57 @@
 # AESIR Red
 
-Public downloads and installation guides for [AESIR Red](https://aesir.red), a plugin-based AI agent harness for authorized security work.
+An AI agent for authorized security work. Choose the **Desktop app** for a graphical workspace or the **TUI** to work in your terminal. Either works on its own.
 
-Download the updated [**0.2.0-rc.3**](https://github.com/MarcReinl/aesir-red-dist/releases/tag/aesir-v0.2.0-rc.3) for the graphical application, official terminal client and local Host runtime. This release candidate replaces the earlier RC.3 downloads; existing users should follow the [refresh instructions](docs/INSTALL.md#data-updates-and-removal). AESIR Term is deferred and excluded from this release.
+[Install Desktop](#install-desktop) · [Install TUI](#install-tui)
 
-## Choose your setup
+Desktop and TUI support macOS 15 or later and Linux, on ARM64 and x86-64.
 
-| Component | What it does | What to install |
-| --- | --- | --- |
-| **AESIR Red Desktop** | Graphical conversations, workspaces, tools, files and visible browser automation | A macOS DMG or Linux AppImage; its Host and runtimes are bundled |
-| **AESIR Red TUI** | Full-screen terminal client for the AESIR Host | The curl installer below supplies the client and a private Node/Host runtime |
-| **AESIR Host runtime** | Runs the local agent and serves its Web/TUI APIs | The archive matching your OS and CPU |
+## Install Desktop
 
-Desktop is the shortest route to the graphical application. For a standalone terminal workflow, install the TUI below and run it in your terminal emulator. Desktop is optional.
+Download [0.2.0-rc.3](https://github.com/MarcReinl/aesir-red-dist/releases/tag/aesir-v0.2.0-rc.3) for your computer:
 
-## Install the TUI
+| System | Download |
+| --- | --- |
+| macOS · Apple Silicon | [Download DMG](https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v0.2.0-rc.3/aesir-red-0.2.0-rc.3-mac-arm64.dmg) |
+| macOS · Intel | [Download DMG](https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v0.2.0-rc.3/aesir-red-0.2.0-rc.3-mac-x64.dmg) |
+| Linux · x86-64 | [Download AppImage](https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v0.2.0-rc.3/aesir-red-0.2.0-rc.3-linux-x86_64.AppImage) |
+| Linux · ARM64 | [Download AppImage](https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v0.2.0-rc.3/aesir-red-0.2.0-rc.3-linux-arm64.AppImage) |
 
-On macOS or Linux:
+On macOS, open the DMG and drag **AESIR Red** to **Applications**. For Linux commands or help with the first launch, follow the [Desktop installation guide](docs/INSTALL.md#aesir-red-desktop).
+
+Open the app, choose a project folder, and configure your model in **Settings → Models**. The app includes its engine and dependencies.
+
+## Install TUI
+
+Run this in your macOS or Linux terminal:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install-tui.sh | sh
 ```
 
-The installer selects the matching `0.2.0-rc.3` client and private Node/Host runtime for your OS and CPU. It needs no sudo, system Node/npm or source checkout, and installation starts no Host. Close and reopen your shell, or run the PATH command printed by the installer, then run:
+Reopen your terminal, then run this from your project folder:
 
 ```sh
 aesir
 ```
 
-It installs `aesir` and `aesir-tui` under `${XDG_DATA_HOME:-$HOME/.local/share}/aesir-cli/bin` and adds that directory to bash/zsh PATH once. Existing explicit, environment and saved Host connections keep precedence; otherwise the client uses its private Host and asks you to trust the workspace. A running Desktop is not discovered automatically.
+The TUI works standalone. Desktop is optional, and the installer automatically installs the engine and Node.js it needs. You do not need sudo, a separate runtime installation or a source checkout. On first use, trust your project folder, configure a provider with `/providers`, and choose a model with `/model`.
 
-[Installation options, manual alternatives, updates and removal](docs/INSTALL.md#aesir-red-tui-and-host) cover custom prefixes and client-only installation with an existing Node/npm and Host connection. Rerun the curl command to update; your sessions and TUI preferences are preserved.
+### Continue in Desktop
 
-## Platforms
+Run `/desktop` in the TUI to continue the **same live session** in the native Desktop app. Existing Desktop windows keep their work. If Desktop is missing, the TUI directs you to download it. [Handoff instructions](docs/INSTALL.md#move-from-tui-to-desktop) include the one-time Linux setup.
 
-| Platform | Desktop | Host runtime | TUI |
-| --- | --- | --- | --- |
-| macOS Apple Silicon | `mac-arm64.dmg` | `darwin-arm64.tar.gz` | Same portable `.tgz` |
-| macOS Intel | `mac-x64.dmg` | `darwin-x64.tar.gz` | Same portable `.tgz` |
-| Linux ARM64 / aarch64 | `linux-arm64.AppImage` | `linux-arm64.tar.gz` | Same portable `.tgz` |
-| Linux x86-64 / amd64 | `linux-x86_64.AppImage` | `linux-x64.tar.gz` | Same portable `.tgz` |
+## Optional: AESIR Term
 
-Desktop and the bundled Host require **macOS 15 or later** on Apple Silicon and Intel. Replacement qualification uses local macOS builders and Debian 12 Linux containers, with native ARM64 execution and translated x64 execution. Check [installation requirements](docs/INSTALL.md) and [qualification coverage](docs/RELEASES.md#verification-and-compatibility) for your system.
+[AESIR Term](docs/INSTALL.md#aesir-term) is our dedicated terminal app, with an AESIR TUI agent pane and conversation navigation. It launches the AESIR Red CLI. You can also use the TUI in your existing terminal.
 
-- [Install, configure, update and uninstall](docs/INSTALL.md)
-- [Features and current limitations](docs/FEATURES.md)
-- [Release history, artifact names and verification](docs/RELEASES.md)
+## Updates and help
 
-Download binaries from a release's **Assets** section. GitHub's automatic **Source code** ZIP/tarball contains this distribution repository and is not an application installer. Verify downloads against that release's `SHA256SUMS` before installing. An RC may be marked as a prerelease, so GitHub's **Latest** label can still point to an older release.
+**Already using RC.3?** Download and replace Desktop, and rerun the TUI installer. The corrected release keeps the same version number, so an automatic version check will not install these replacement files. See [updates and removal](docs/INSTALL.md#data-updates-and-removal).
 
-## Repository and licenses
+- [Installation and first conversation](docs/INSTALL.md)
+- [Features](docs/FEATURES.md)
+- [Release notes and platform compatibility](docs/RELEASES.md)
+- [Advanced setup](docs/ADVANCED.md) — custom installations, existing connections and headless use
 
-This repository hosts public distribution documentation and release assets. The AESIR Red and TUI development repositories are private; building either from private source is not required for the published installation routes.
-
-AESIR Red and its TUI are MIT-licensed. Bundled dependencies retain their own licenses; consult each component's license and notices.
-
-Report problems through [this repository's issues](https://github.com/MarcReinl/aesir-red-dist/issues). Include the release tag, component, operating system, CPU architecture, exact asset filename and the error. Remove API keys and tokenized Host URLs from reports.
+This repository provides public downloads and guides; no private source checkout is needed. AESIR Red and its TUI are MIT-licensed. AESIR Term is GPL-3.0; bundled dependencies retain their own licenses and notices.

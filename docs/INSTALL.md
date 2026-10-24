@@ -1,26 +1,114 @@
 # Install AESIR Red
 
-Choose the graphical Desktop application or install the standalone TUI with its private local Host in your terminal emulator. Desktop is optional for the TUI. These instructions describe the updated RC.3 downloads; existing RC.3 users should [refresh their installation](#data-updates-and-removal).
+Choose **Desktop** for a graphical app or **TUI** for your terminal. Both include the engine they need; there is no separate engine installation. The TUI works without Desktop.
 
-## Requirements
+Supports macOS 15 or later and Linux, on ARM64 and x86-64. Linux checks used Ubuntu 24.04; see [platform compatibility](RELEASES.md#verification-and-compatibility) for tested environments and limits. Installation needs internet access. Model credentials or a local model service are configured after installation.
 
-Desktop and the bundled Host require **macOS 15 or later**, on both Apple Silicon and Intel. Installing a different system Node.js does not lower that requirement: the application also includes native dependencies.
+<a id="aesir-red-desktop"></a>
 
-The replacement Linux builds use **Debian 12** containers; ARM64 runs without CPU translation and x86-64 uses translation on ARM64 hardware. See [qualification coverage](RELEASES.md#verification-and-compatibility) for build and GUI limits. Other distributions need compatible system libraries and their own qualification. The TUI installer and manual archive extraction do not install system packages. Shell tools need `bash` on `PATH`; confined Linux shell operations also need a usable sandbox backend. AESIR tries bubblewrap first, then its bundled Landlock launcher. On Debian or Ubuntu, install the standard packages with:
+## Install Desktop
+
+### macOS
+
+1. Download the [Apple Silicon DMG](https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v0.2.0-rc.3/aesir-red-0.2.0-rc.3-mac-arm64.dmg) or [Intel DMG](https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v0.2.0-rc.3/aesir-red-0.2.0-rc.3-mac-x64.dmg). **About This Mac** identifies your chip.
+2. Open the DMG, drag **AESIR Red** to **Applications**, and open the installed app.
+3. Choose your project folder and configure a model in **Settings → Models**.
+
+These release-candidate builds are not notarized by Apple. If macOS blocks the first launch, [verify your download](#download-and-verify), then use **System Settings → Privacy & Security → Open Anyway**. [Advanced setup](ADVANCED.md#macos-first-launch) includes the terminal alternative.
+
+### Linux
+
+Download the [x86-64 AppImage](https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v0.2.0-rc.3/aesir-red-0.2.0-rc.3-linux-x86_64.AppImage) or [ARM64 AppImage](https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v0.2.0-rc.3/aesir-red-0.2.0-rc.3-linux-arm64.AppImage). `uname -m` reports `x86_64` or `aarch64`, respectively.
+
+For x86-64, run:
 
 ```sh
-sudo apt install bash bubblewrap
+chmod +x aesir-red-0.2.0-rc.3-linux-x86_64.AppImage
+./aesir-red-0.2.0-rc.3-linux-x86_64.AppImage
 ```
 
-The kernel must permit the selected backend. If neither backend works, confined operations report `SANDBOX_UNAVAILABLE`. A TUI client attached to a Host on another machine follows its local Node.js requirements; the Host machine must meet the Host's requirements.
+Use the `linux-arm64` filename on ARM64. Choose a project folder, configure a model in **Settings → Models**, and start a conversation.
+
+<a id="aesir-red-tui-and-host"></a>
+
+## Install TUI
+
+Run this in your macOS or Linux terminal:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install-tui.sh | sh
+```
+
+The installer selects your computer's version and installs the TUI with its engine and Node.js automatically. You do not need Desktop, sudo, system Node/npm, a compiler or a source checkout. It checks the release downloads before activating the installation and starts no agent session during installation.
+
+Close and reopen your terminal, then run this from your project folder:
+
+```sh
+aesir
+```
+
+If the command is not found, use the PATH command printed by the installer. The `aesir-tui` command opens the same application.
+
+### Start your first conversation
+
+Trust your project folder when prompted. Use `/providers` to configure your provider, `/model` to choose a model and reasoning effort, and `/permissions` to review access. Enter your task to start the conversation.
+
+Use `/help` for commands, `/resume` for previous conversations and `/exit` to return to your shell. Model services and credentials are your choice; they are not included with the application.
+
+Custom installation folders, client-only installation, existing engine connections and manual archives are covered in [advanced setup](ADVANCED.md).
+
+## Move from TUI to Desktop
+
+Run `/desktop` in the TUI to open the **same live conversation** in a native Desktop workspace window. Existing Desktop windows keep their work. Send or remove staged attachments first. Allow up to 90 seconds for a cold Desktop launch.
+
+The TUI restores your shell and exits only after Desktop has opened that conversation. Cancelling or a failed transfer leaves the TUI usable. The conversation keeps running after your terminal closes and stops its private engine when the final attached Desktop window closes.
+
+If Desktop is missing or needs an update, choose **Download AESIR Desktop** or **Update AESIR Desktop**. The TUI opens this installation guide and keeps your conversation, draft and attachments. Install the matching Desktop release, then run `/desktop` again.
+
+<details>
+<summary>Linux: one-time Desktop setup for /desktop</summary>
+
+The TUI needs the extracted Desktop executable. Keep it in a permanent directory, then run:
+
+```sh
+./aesir-red-0.2.0-rc.3-linux-x86_64.AppImage --appimage-extract
+AESIR_DESKTOP_PATH="$PWD/squashfs-root/aesir-red" aesir
+```
+
+Use the ARM64 filename on ARM64. Keep `squashfs-root` intact and use the executable's absolute path when starting from another folder. [Advanced handoff details](ADVANCED.md#desktop-handoff-technical-details) cover nonstandard application locations and supported connections.
+
+</details>
+
+## AESIR Term
+
+AESIR Term is an optional dedicated terminal app. Its agent pane launches the AESIR Red TUI; the standalone TUI installer above supplies that CLI and its engine. Ordinary terminal use does not need the TUI or a model provider.
+
+### macOS
+
+Download the [AESIR Term DMG](https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v0.2.0-rc.3/AESIR-Term-0.1.0-macos.dmg), open it, and drag **AESIR Term** to **Applications**. One DMG supports Apple Silicon and Intel. Terminal alone needs macOS 12 or later; using its AESIR TUI integration needs macOS 15 or later.
+
+The app is signed ad hoc and is not notarized by Apple. Verify the download, then use **Privacy & Security → Open Anyway** if needed.
+
+### Debian, Ubuntu and Kali Linux
+
+Download the [x86-64 DEB](https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v0.2.0-rc.3/aesir-term_0.1.0_amd64.deb) or [ARM64 DEB](https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v0.2.0-rc.3/aesir-term_0.1.0_arm64.deb). For x86-64, install and start it with:
+
+```sh
+sudo apt install --reinstall ./aesir-term_0.1.0_amd64.deb
+aesir-term
+```
+
+Use the `arm64` filename on ARM64. Apt installs the declared system dependencies. A graphical X11 or Wayland session with OpenGL is required; Debian 12 installation and virtual X11 were tested. See [release compatibility](RELEASES.md#verification-and-compatibility) for the other limits.
+
+### Open the agent pane
+
+Install the TUI using the curl command above, then open AESIR Term with `aesir-tui` available on its PATH. Press **Cmd+I** on macOS or **Ctrl+Alt+I** on Linux to open the agent pane in your current project. The Conversations view lets you resume an AESIR conversation. Configure its model in the TUI as described above.
 
 ## Download and verify
 
-Open [Releases](https://github.com/MarcReinl/aesir-red-dist/releases), select the desired release, and download your files plus its `SHA256SUMS`. Use files from the same release for a coordinated setup.
+The TUI installer verifies its release downloads automatically. For manually downloaded Desktop or Terminal files, get a fresh `SHA256SUMS` from [RC.3](https://github.com/MarcReinl/aesir-red-dist/releases/tag/aesir-v0.2.0-rc.3).
 
-On macOS, **About This Mac** identifies an Apple chip or an Intel processor. On Linux, run `uname -m`: `aarch64` means ARM64; `x86_64` means Intel/AMD 64-bit. The runtime archives call the latter CPU `x64`.
-
-Check one downloaded file on macOS:
+For example, on macOS:
 
 ```sh
 shasum -a 256 aesir-red-0.2.0-rc.3-mac-arm64.dmg
@@ -32,188 +120,14 @@ On Linux:
 sha256sum aesir-red-0.2.0-rc.3-linux-x86_64.AppImage
 ```
 
-Replace the filename with your download and compare the complete hash with its line in `SHA256SUMS`. If you downloaded every listed file, `shasum -a 256 -c SHA256SUMS` on macOS or `sha256sum -c SHA256SUMS` on Linux checks the complete set. A mismatch means the file should be downloaded again before installation.
-
-## AESIR Red Desktop
-
-Desktop includes the application, its local Host, Node.js and supporting runtimes. You do not need a system Node.js, npm, Python or source checkout to start it. A model provider and the tools needed for your work are configured separately.
-
-### macOS
-
-Download `aesir-red-0.2.0-rc.3-mac-arm64.dmg` for Apple Silicon or `aesir-red-0.2.0-rc.3-mac-x64.dmg` for Intel. Open the DMG, drag **AESIR Red** to **Applications**, eject the disk image, and open the installed application.
-
-These RC builds are not notarized by Apple. After verifying the download, use **System Settings → Privacy & Security → Open Anyway** if macOS blocks the first launch. Where the shortcut menu offers it, right-clicking the installed app and choosing **Open** also permits the first launch. The terminal alternative is:
-
-```sh
-xattr -dr com.apple.quarantine "/Applications/AESIR Red.app"
-```
-
-### Linux
-
-Download the AppImage for your CPU, mark that file executable, and launch it:
-
-```sh
-chmod +x aesir-red-0.2.0-rc.3-linux-x86_64.AppImage
-./aesir-red-0.2.0-rc.3-linux-x86_64.AppImage
-```
-
-Use the `linux-arm64` filename on ARM64. Keep the AppImage in a permanent directory if you create a launcher for it.
-
-### Configure your model
-
-Open **Settings → Models** to select or configure a provider, API key, model and reasoning effort. A local Ollama route needs a running Ollama service with a usable model. Cloud routes need the selected provider's credentials and network access. Opening the workspace does not establish that a model is available.
-
-Choose a workspace directory, review the current permission mode, and start a conversation. Desktop does not require a DeepSeek account sign-in in its default configuration. Skills that invoke external tools need those tools available in the selected execution environment.
-
-## AESIR Red TUI and Host
-
-### Recommended: curl installer
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install-tui.sh | sh
-```
-
-The installer detects macOS/Linux and ARM64/x64, downloads the coordinated `0.2.0-rc.3` TUI and matching private Host/Node runtime, and checks the official release assets against `SHA256SUMS`. It installs production TUI dependencies from the npm registry with lifecycle scripts disabled. Internet access to GitHub and the registry is required; sudo, a system Node/npm, a compiler and a source checkout are unnecessary. Installation starts no Host and makes no model request.
-
-Packages are installed under `${XDG_DATA_HOME:-$HOME/.local/share}/aesir-cli`. Its `bin` directory exposes `aesir` and `aesir-tui`; existing commands elsewhere are preserved. The installer adds this directory to bash/zsh PATH once and names the updated startup files. Close and reopen the shell, reload the named profile, or run the printed PATH command, then start the client:
-
-```sh
-aesir --cwd /absolute/path/to/project
-```
-
-The client preserves your preferences and honors an explicit connection, `AESIR_HOST_URL`, or a saved connection before falling back to its private Host. A managed launch asks you to trust the workspace and normally stops its Host when the client exits. Installing does not connect to or discover an already running Desktop automatically.
-
-Pass installer options after `sh -s --`:
-
-```sh
-# Choose an absolute installation prefix.
-curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install-tui.sh | sh -s -- --prefix "$HOME/Applications/aesir-cli"
-
-# Select a coordinated release version explicitly.
-curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install-tui.sh | sh -s -- --version 0.2.0-rc.3
-
-# Keep shell startup files unchanged; add the printed PATH yourself.
-curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install-tui.sh | sh -s -- --no-modify-path
-
-# Install only the client using your existing Node >=22.19 and npm.
-curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install-tui.sh | sh -s -- --client-only
-```
-
-`--client-only` downloads no Host and needs an existing compatible Host connection or launcher. It retains the client's normal connection chooser. Its local Node requirement is independent of the macOS 15 requirement for the bundled Host. You can combine the options above. Unknown shells receive explicit PATH instructions instead of a startup-file edit.
-
-Rerun the same curl command to update, retaining any custom prefix or client-only option. Installation is staged and checked before changing the active version; earlier versions remain installed. Session data, credentials, model settings and TUI preferences are preserved. A failed download, checksum check or dependency installation leaves the active installation unchanged.
-
-### Alternative: install release archives manually
-
-The TUI is a client of an AESIR Host. The portable `aesir-tui-0.2.0-rc.3.tgz` is shared by all four supported targets. It contains neither Node.js nor the Host. npm fetches its runtime dependencies during installation, so this step requires registry access. Download and verify the archives as described above.
-
-The coordinated Host archives carry Node.js 24.21.0 and npm. They are named `aesir-0.2.0-rc.3-<target>.tar.gz`, where `<target>` is `darwin-arm64`, `darwin-x64`, `linux-arm64` or `linux-x64`. Create a directory and extract the archive into it, removing the archive's top directory. For example, on Apple Silicon:
-
-```sh
-mkdir -p "$HOME/.local/share/aesir/0.2.0-rc.3"
-tar -xzf aesir-0.2.0-rc.3-darwin-arm64.tar.gz \
-  -C "$HOME/.local/share/aesir/0.2.0-rc.3" --strip-components=1
-```
-
-Substitute your target's filename on Intel macOS or Linux. Keep the extracted directory intact.
-
-Install the TUI with the archive's Node/npm, then select this Host once:
-
-```sh
-aesir_runtime="$HOME/.local/share/aesir/0.2.0-rc.3"
-aesir_tui_prefix="$HOME/.local/share/aesir-tui"
-export PATH="$aesir_runtime/node/bin:$aesir_tui_prefix/bin:$PATH"
-"$aesir_runtime/node/bin/node" \
-  "$aesir_runtime/node/lib/node_modules/npm/bin/npm-cli.js" \
-  install --global --prefix "$aesir_tui_prefix" --omit=dev --ignore-scripts \
-  ./aesir-tui-0.2.0-rc.3.tgz
-aesir-tui --dsh "$aesir_runtime/bin/aesir" --cwd /absolute/path/to/project
-```
-
-Replace the project path with your workspace. The client remembers the selected Host launcher; later runs can use `aesir-tui` or `aesir`. Add both bin directories to your shell startup file so new terminals can find the client and its Node runtime. Keep the Host's `bin/aesir` separate from the TUI's command with the same name. A separate system Node installation is unnecessary for this route.
-
-### Alternative: existing Node/npm and Host
-
-Install architecture-matched [Node.js with npm](https://nodejs.org/en/download). Use Node 22.19 or later in the 22.x line, or Node 24 or later supported by the chosen Host. Node 22.19 and 24 are the TUI's release qualification versions. Verify your tools:
-
-```sh
-node --version
-npm --version
-node -p 'process.platform + " " + process.arch'
-```
-
-Install the reviewed archive into a user-owned prefix:
-
-```sh
-npm install --global --prefix "$HOME/.local" --omit=dev --ignore-scripts ./aesir-tui-0.2.0-rc.3.tgz
-export PATH="$HOME/.local/bin:$PATH"
-aesir-tui --version
-```
-
-Add that `PATH` setting to your shell startup file to keep it across terminal sessions. `aesir` is an alias for the same client. Use `aesir-tui` to distinguish the client from a Host launcher also named `aesir`; if an executable already exists in that prefix, choose a separate prefix.
-
-Select a compatible Host launcher in the startup chooser or explicitly:
-
-```sh
-aesir-tui --dsh /absolute/path/to/your/host-launcher --cwd /absolute/path/to/project
-```
-
-The launcher must support AESIR's `dsh --profile web` entry. A managed launch asks you to trust its workspace, starts the Host on an available loopback port, and normally shuts that Host down when the TUI exits. Installing Desktop does not add a `dsh` command to your shell; use the separate Host runtime for a managed TUI launch.
-
-### Attach to an existing Host
-
-Use the authenticated launch URL printed by a compatible `dsh --profile web --no-open` process:
-
-```sh
-AESIR_HOST_URL='http://127.0.0.1:3080/?token=YOUR_LAUNCH_TOKEN' aesir-tui
-```
-
-Use the actual port and token from that Host. Treat this URL as a credential. Attaching leaves the existing Host running when the TUI closes. The TUI's menus and file operations refer to that Host's machine and workspace; local clipboard and attachment selection refer to the machine running the TUI.
-
-This explicit URL route also works with the curl installation. It does not automatically find a Desktop Host or select a conversation in Desktop's ordinary main window.
-
-### First conversation and shortcuts
-
-Use `/help` to discover commands, `/model` to select a model, `/providers` for provider setup, `/config` for settings, and `/permissions` to review permissions. Type `/` to filter commands and `@` to find Host workspace files. `/resume` opens previous conversations; `/exit` restores your shell.
-
-`aesir-tui --danger` selects full access. `aesir-tui --auto` selects the Auto reviewer when the Host provides it. These modes do not install missing Host capabilities. Without an explicit mode flag, the Host default or resumed session's permissions apply.
-
-Linux text operation needs a UTF-8 terminal. Clipboard image paste and code copying additionally need `wl-clipboard` on Wayland or `xclip` on X11. macOS uses its standard clipboard tools. Use **Ctrl+V** in the TUI to stage a clipboard image; the terminal's normal text-paste shortcut remains separate.
-
-### Move from TUI to Desktop
-
-With a compatible RC Desktop installed, `/desktop` opens the current root or child conversation in another workspace window attached to the same live local Host. Existing Desktop windows keep their connections and work. Send or remove staged attachments first. Allow up to 90 seconds for a cold Desktop startup before handoff times out. The TUI restores your shell and exits only after authenticated readiness for that exact conversation and a committed attachment lease; cancellation or failure leaves the TUI connected. After transfer, its supervisor retains a managed Host until the final attached window finishes closing and releases its lease.
-
-If Desktop is missing or incompatible, choose **Download AESIR Desktop** or **Update AESIR Desktop**. These actions open the [official Desktop installation guide](https://github.com/MarcReinl/aesir-red-dist/blob/main/docs/INSTALL.md#aesir-red-desktop) in your browser and preserve the TUI conversation, unsent draft, staged images/files and running Host. Follow the guide to install a compatible build or correct its location, then run `/desktop` again.
-
-The replacement's attached workspace includes native window chrome, its own folder picker and local file-path references. When the source Host enables Browser, manual tabs use native guests isolated to that window. Shortcuts use Web defaults and DOM input delivery; their window-local preferences are discarded when the window closes. Ordinary Desktop account, updater and Host management remain in ordinary windows, along with saved native shortcuts, menu bindings and Browser-guest accelerators.
-
-This handoff supports local macOS/Linux Hosts. Remote Hosts and reverse-proxy mounts are not supported. Model-facing browser tools depend on the source Host's configured providers; installing Desktop does not add an Electron-backed browser provider to a TUI-managed Web Host. A separately opened Desktop application runs its own Host and does not automatically attach to the TUI. Use `AESIR_DESKTOP_PATH` for a nonstandard Desktop installation; on macOS it names the `.app` root.
-
-On Linux, handoff needs an unpacked Desktop directory so the TUI can read its capability file. Pointing `AESIR_DESKTOP_PATH` at the AppImage itself is insufficient. Extract it into a permanent directory, then select the inner executable:
-
-```sh
-./aesir-red-0.2.0-rc.3-linux-x86_64.AppImage --appimage-extract
-AESIR_DESKTOP_PATH="$PWD/squashfs-root/aesir-red" aesir-tui
-```
-
-Use the ARM64 filename on ARM64. Keep `squashfs-root` intact and preserve the absolute path when launching from another directory. The selected release's evidence records whether Linux native handoff has been qualified.
+Replace the filename with your download and compare the complete hash with its line in `SHA256SUMS`. Download the file again if they differ. GitHub's automatic **Source code** ZIP/tarball contains this distribution repository; it is not an installer.
 
 ## Data, updates and removal
 
-| Component | Local data |
-| --- | --- |
-| Curl installer packages | `${XDG_DATA_HOME:-$HOME/.local/share}/aesir-cli`, or your explicit `--prefix`; versioned packages and command aliases |
-| Host release archive | `DSH_HOME`, defaulting to `~/.aesir/home` in the archive launcher |
-| Desktop | `DSH_HOME`, normally `~/.dsh`; Desktop owns a separate runtime/plugin profile |
-| TUI | `$XDG_CONFIG_HOME/aesir-red-tui/client.json`, normally `~/.config/aesir-red-tui/client.json`; client preferences and drafts |
+**Update TUI:** rerun the same curl command. Your sessions, settings and TUI preferences are preserved. A failed installation leaves the active version unchanged.
 
-TUI clients on the same running Host share its sessions, settings, credentials and plugins. The release archive and Desktop use different data directories by default. Setting the same `DSH_HOME` does not attach two Hosts to each other; their processes, runtime packages and plugin activation remain separate. `/desktop` preserves the running Host instead of copying a session between them.
+**Update Desktop:** quit the app, download and verify the replacement, then replace your installed app or AppImage.
 
-Existing RC.3 installations need an explicit refresh after the replacement is announced: manually replace Desktop with the newly verified app, rerun the TUI curl installer, and replace any manually extracted Host runtime you use. The version remains `0.2.0-rc.3`, so an automatic version check does not install these replacement bytes. Download a fresh `SHA256SUMS` with the new files; an earlier checksum file describes the earlier downloads.
+**Existing RC.3 users:** the corrected release keeps version `0.2.0-rc.3`. Manually replace Desktop and rerun the TUI installer; automatic version checks do not install an equal-version replacement. Download fresh files and `SHA256SUMS` together. To replace an earlier AESIR Term `0.1.0`, replace the macOS app or use the Linux `--reinstall` command above.
 
-For a curl-installed TUI, rerun the installer with the same prefix and desired version; it checks and activates the staged installation while retaining previous versions. Quit the client before deliberately removing an installed version. For a manual RC upgrade, export important sessions and back up your Harness data first. Quit the component, verify the replacement download, and replace the Desktop app, AppImage or extracted Host directory. Reinstall a newer TUI archive with the same npm command; update your PATH and select its new Host path with `--dsh` when the runtime directory changes. Do not assume an older runtime can read data written by a newer release. These routes do not depend on an automatic updater.
-
-To remove a curl installation, close its TUI and any Desktop windows attached to its private Host, then delete the installation prefix: normally `~/.local/share/aesir-cli`, or the directory you selected with XDG_DATA_HOME or `--prefix`. Remove its PATH line from your shell startup file if needed. Deleting this package prefix leaves `DSH_HOME` and TUI preferences intact.
-
-To remove Desktop, delete its macOS application or Linux AppImage. For a manually installed TUI, run `npm uninstall --global --prefix "$HOME/.local/share/aesir-tui" @aesir-red/tui-client` before removing the Host that supplies Node/npm; use `"$HOME/.local"` instead if you chose the system-Node installation prefix. Remove the extracted Host directory when it is no longer running and remove its PATH entries from your shell startup file. Application removal leaves your Harness data and TUI preferences; remove those directories separately only if you intend to erase that data.
+**Remove an app:** quit it and delete its Desktop/Terminal application or AppImage; Linux Terminal packages can be removed with `sudo apt remove aesir-term`. To remove the curl-installed TUI, close it and its attached Desktop windows, delete `~/.local/share/aesir-cli` (or your custom installation folder), and remove its PATH entry from your shell startup file. Removing application files leaves conversation data and preferences intact. [Advanced data locations](ADVANCED.md#data-updates-and-manual-removal) cover custom installations and deliberate data removal.
