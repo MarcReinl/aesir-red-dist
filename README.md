@@ -1,64 +1,41 @@
-# AESIR Red — desktop app
+# AESIR Red
 
-Desktop builds of [AESIR Red](https://aesir.red), a plugin-based AI agent harness for
-authorized security testing.
+Public downloads and installation guides for [AESIR Red](https://aesir.red), a plugin-based AI agent harness for authorized security work.
 
-Download the build for your machine from the
-[latest release](https://github.com/MarcReinl/aesir-red-dist/releases/latest). Each app
-carries its own Node runtime and agent, so nothing is installed alongside it and nothing
-is compiled.
+Download [**0.2.0-rc.3**](https://github.com/MarcReinl/aesir-red-dist/releases/tag/aesir-v0.2.0-rc.3) for the graphical application, official terminal client, local Host runtime and AESIR Term. This is a release candidate.
 
-| Platform | File |
-| --- | --- |
-| macOS (Apple Silicon) | `aesir-red-<version>-mac-arm64.dmg` |
-| Linux x86-64 | `aesir-red-<version>-linux-x86_64.AppImage` |
-| Linux arm64 | `aesir-red-<version>-linux-arm64.AppImage` |
+## Choose your setup
 
-## macOS
+| Component | What it does | What to install |
+| --- | --- | --- |
+| **AESIR Red Desktop** | Graphical conversations, workspaces, tools, files and visible browser automation | A macOS DMG or Linux AppImage; its Host and runtimes are bundled |
+| **AESIR Red TUI** | Full-screen terminal client for the AESIR Host | The portable TUI `.tgz` and a compatible Host; the Host archive supplies Node/npm |
+| **AESIR Host runtime** | Runs the local agent and serves its Web/TUI APIs | The archive matching your OS and CPU |
+| **AESIR Term** | Dedicated kitty-based terminal emulator with an AESIR TUI pane, search, notebooks and shell tools | Its universal macOS DMG or Debian-family Linux package; install the TUI and Host separately |
 
-Open the DMG and drag **AESIR Red** to Applications.
+Desktop is the shortest route to the graphical application. For a terminal workflow, install the Host runtime and TUI, then run the TUI in AESIR Term or another terminal emulator. AESIR Term's agent pane launches the configured AESIR TUI and its Conversations view lists AESIR Host sessions.
 
-These builds are not signed with an Apple Developer certificate, so the first launch needs
-one extra step: **right-click the app and choose Open**, then confirm. Double-clicking it
-the usual way shows "cannot be opened because it is from an unidentified developer" with no
-way through. You only do this once.
+## Platforms
 
-From a terminal, clearing the quarantine attribute does the same thing:
+| Platform | Desktop | Host runtime | TUI | AESIR Term |
+| --- | --- | --- | --- | --- |
+| macOS Apple Silicon | `mac-arm64.dmg` | `darwin-arm64.tar.gz` | Same portable `.tgz` | Universal macOS DMG |
+| macOS Intel | `mac-x64.dmg` | `darwin-x64.tar.gz` | Same portable `.tgz` | Universal macOS DMG |
+| Linux ARM64 / aarch64 | `linux-arm64.AppImage` | `linux-arm64.tar.gz` | Same portable `.tgz` | `arm64.deb` |
+| Linux x86-64 / amd64 | `linux-x86_64.AppImage` | `linux-x64.tar.gz` | Same portable `.tgz` | `amd64.deb` |
 
-```sh
-xattr -d com.apple.quarantine "/Applications/AESIR Red.app"
-```
+Desktop and the bundled Host require **macOS 15 or later** on Apple Silicon and Intel; AESIR Term alone requires macOS 12 or later. Desktop/Host Linux release qualification targets **Ubuntu 24.04** on both CPU architectures. AESIR Term's Linux packages target Debian-family distributions. Check [installation requirements](docs/INSTALL.md) and the selected release's qualification notes for your system.
 
-## Linux
+- [Install, configure, update and uninstall](docs/INSTALL.md)
+- [Features and current limitations](docs/FEATURES.md)
+- [Release history, artifact names and verification](docs/RELEASES.md)
 
-The AppImage needs no installation and no FUSE.
+Download binaries from a release's **Assets** section. GitHub's automatic **Source code** ZIP/tarball contains this distribution repository and is not an application installer. Verify downloads against that release's `SHA256SUMS` before installing. An RC may be marked as a prerelease, so GitHub's **Latest** label can still point to an older release.
 
-```sh
-chmod +x aesir-red-*-linux-*.AppImage
-./aesir-red-*-linux-*.AppImage
-```
+## Repository and licenses
 
-Pick `x86_64` for an Intel or AMD machine and `arm64` for an ARM one; `uname -m` reports
-which you have.
+This repository hosts public distribution documentation and release assets. The AESIR Red and TUI development repositories are private; building either from private source is not required for the published installation routes.
 
-## Verify a download
+AESIR Red and its TUI are MIT-licensed. **AESIR Term is GPL-3.0**, based on kitty. Bundled dependencies retain their own licenses; consult each component's license and notices. Terminal binaries are accompanied by the matching Terminal source archive, pinned kitty source and upstream source catalog.
 
-Each release publishes `SHA256SUMS-desktop`. Download it next to the app and check:
-
-```sh
-sha256sum --ignore-missing -c SHA256SUMS-desktop
-```
-
-On macOS, `shasum -a 256 -c SHA256SUMS-desktop --ignore-missing`.
-
-## Windows
-
-There is no Windows desktop build yet. Windows users can run the terminal release through
-WSL, where the Linux path above works unchanged.
-
-## Reporting a problem
-
-Open an issue at [MarcReinl/aesir-red-dist](https://github.com/MarcReinl/aesir-red-dist/issues).
-Include the version from the release you downloaded and your platform. The desktop and
-terminal artifacts in a release can be built from different revisions, so say which one you
-ran.
+Report problems through [this repository's issues](https://github.com/MarcReinl/aesir-red-dist/issues). Include the release tag, component, operating system, CPU architecture, exact asset filename and the error. Remove API keys and tokenized Host URLs from reports.
