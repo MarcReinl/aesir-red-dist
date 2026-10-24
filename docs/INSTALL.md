@@ -1,12 +1,12 @@
 # Install AESIR Red
 
-Choose the graphical Desktop application or install the TUI with its private local Host. Run the TUI in AESIR Term or another terminal emulator. AESIR Term's agent pane uses the separately installed TUI.
+Choose the graphical Desktop application or install the standalone TUI with its private local Host in your terminal emulator. Desktop is optional for the TUI. These instructions describe the updated RC.3 downloads; existing RC.3 users should [refresh their installation](#data-updates-and-removal).
 
 ## Requirements
 
 Desktop and the bundled Host require **macOS 15 or later**, on both Apple Silicon and Intel. Installing a different system Node.js does not lower that requirement: the application also includes native dependencies.
 
-Linux release qualification targets **Ubuntu 24.04**, on ARM64 and x86-64. Other distributions need compatible system libraries and their own qualification. The TUI installer and manual archive extraction do not install system packages. Shell tools need `bash` on `PATH`; confined Linux shell operations also need a usable sandbox backend. AESIR tries bubblewrap first, then its bundled Landlock launcher. On Ubuntu, install the standard packages with:
+The replacement Linux builds use **Debian 12** containers; ARM64 runs without CPU translation and x86-64 uses translation on ARM64 hardware. See [qualification coverage](RELEASES.md#verification-and-compatibility) for build and GUI limits. Other distributions need compatible system libraries and their own qualification. The TUI installer and manual archive extraction do not install system packages. Shell tools need `bash` on `PATH`; confined Linux shell operations also need a usable sandbox backend. AESIR tries bubblewrap first, then its bundled Landlock launcher. On Debian or Ubuntu, install the standard packages with:
 
 ```sh
 sudo apt install bash bubblewrap
@@ -182,9 +182,13 @@ Linux text operation needs a UTF-8 terminal. Clipboard image paste and code copy
 
 ### Move from TUI to Desktop
 
-With a compatible RC Desktop installed, `/desktop` opens the current conversation in a window attached to the same local Host. Send or remove staged attachments first. The TUI exits only after Desktop confirms that exact conversation is loaded; cancellation or failure leaves the TUI connected. A managed Host stays alive until its final attached Desktop window closes.
+With a compatible RC Desktop installed, `/desktop` opens the current root or child conversation in another workspace window attached to the same live local Host. Existing Desktop windows keep their connections and work. Send or remove staged attachments first. Allow up to 90 seconds for a cold Desktop startup before handoff times out. The TUI restores your shell and exits only after authenticated readiness for that exact conversation and a committed attachment lease; cancellation or failure leaves the TUI connected. After transfer, its supervisor retains a managed Host until the final attached window finishes closing and releases its lease.
 
-This handoff supports local macOS/Linux Hosts. Remote Hosts and reverse-proxy mounts are not supported. The handoff window has restricted native capabilities; full native browser operations need the same conversation selected in Desktop's ordinary main window. A separately opened Desktop application runs its own Host and does not automatically attach to the TUI. Use `AESIR_DESKTOP_PATH` for a nonstandard Desktop installation; on macOS it names the `.app` root.
+If Desktop is missing or incompatible, choose **Download AESIR Desktop** or **Update AESIR Desktop**. These actions open the [official Desktop installation guide](https://github.com/MarcReinl/aesir-red-dist/blob/main/docs/INSTALL.md#aesir-red-desktop) in your browser and preserve the TUI conversation, unsent draft, staged images/files and running Host. Follow the guide to install a compatible build or correct its location, then run `/desktop` again.
+
+The replacement's attached workspace includes native window chrome, its own folder picker and local file-path references. When the source Host enables Browser, manual tabs use native guests isolated to that window. Shortcuts use Web defaults and DOM input delivery; their window-local preferences are discarded when the window closes. Ordinary Desktop account, updater and Host management remain in ordinary windows, along with saved native shortcuts, menu bindings and Browser-guest accelerators.
+
+This handoff supports local macOS/Linux Hosts. Remote Hosts and reverse-proxy mounts are not supported. Model-facing browser tools depend on the source Host's configured providers; installing Desktop does not add an Electron-backed browser provider to a TUI-managed Web Host. A separately opened Desktop application runs its own Host and does not automatically attach to the TUI. Use `AESIR_DESKTOP_PATH` for a nonstandard Desktop installation; on macOS it names the `.app` root.
 
 On Linux, handoff needs an unpacked Desktop directory so the TUI can read its capability file. Pointing `AESIR_DESKTOP_PATH` at the AppImage itself is insufficient. Extract it into a permanent directory, then select the inner executable:
 
@@ -195,44 +199,6 @@ AESIR_DESKTOP_PATH="$PWD/squashfs-root/aesir-red" aesir-tui
 
 Use the ARM64 filename on ARM64. Keep `squashfs-root` intact and preserve the absolute path when launching from another directory. The selected release's evidence records whether Linux native handoff has been qualified.
 
-## AESIR Term
-
-AESIR Term bundles kitty, its Python packages, ripgrep, micro and zsh syntax highlighting. For its agent pane and Conversations view, use the TUI curl installer above: it supplies both the client and private Host, with no extra manual Host download. Alternatively, configure the TUI with an existing compatible Host. Ordinary terminal use needs neither a Host nor a model provider.
-
-### macOS
-
-AESIR Term alone requires macOS 12 or later. Running the coordinated local Host/TUI setup requires macOS 15 or later. `AESIR-Term-0.1.0-macos.dmg` is universal for Apple Silicon and Intel. Open it and drag **AESIR Term** into **Applications**.
-
-The build is signed ad hoc and is not notarized. After verifying the checksum, permit the first launch through macOS Privacy & Security, or run:
-
-```sh
-xattr -dr com.apple.quarantine "/Applications/AESIR Term.app"
-```
-
-### Debian-family Linux
-
-Requires glibc 2.35 or later, libstdc++ from GCC 11 or later (`GLIBCXX_3.4.29`), and a graphical X11/Wayland session with OpenGL. Install the matching package with apt:
-
-```sh
-sudo apt install ./aesir-term_0.1.0_amd64.deb
-```
-
-Use `arm64.deb` on ARM64. Apt resolves the declared system libraries; zsh is needed for shell extras. To replace an earlier build with the same `0.1.0` package version, use `sudo apt install --reinstall ./aesir-term_0.1.0_amd64.deb`. The final release's qualification notes identify the tested distributions. The bundled Host has its own requirements; do not infer full Host compatibility from Terminal package installation.
-
-### Agent pane and conversations
-
-Open the TUI once, select its Host launcher or connection, and configure the model. Ensure `aesir-tui` and its Node runtime are accessible on the Terminal application's `PATH`. In `extras/settings.toml`, `[agent] command` defaults to `["aesir-tui"]`; if the app cannot find your installation, set explicit interpreter and client-script paths, for example `["/absolute/path/to/node", "/absolute/path/to/tui/dist/cli.js"]`.
-
-Use **Cmd+I** on macOS or **Ctrl+Alt+I** on Linux to open the agent pane. The terminal passes the active shell's directory to the TUI, and workspace trust remains interactive. **Conversations** in Tools lists AESIR Host sessions; select one to resume it in the agent pane. Listing reads the catalog without creating a conversation or making a model request.
-
-The launcher recognizes the previous stock OpenCode command and runs the AESIR TUI instead. Explicit custom commands remain configurable; this does not import OpenCode conversation history. Configure the agent's models, credentials and permissions in the TUI/Host.
-
-### Terminal tools and optional explain/fix
-
-Use **Cmd+P** on macOS or **Ctrl+Alt+P** on Linux for the command palette. **Cmd+B** / **Ctrl+Alt+B** opens Tools for projects, search, notebooks and conversations. Split with **Cmd+D** / **Ctrl+Shift+D**. Shell extras work in zsh without editing your `.zshrc`.
-
-Explain/fix uses Terminal's own `[assistant]` settings, separately from the TUI's model setup. Its default cloud route needs [Ollama](https://ollama.com/download) and sign-in; you can instead configure an available local model or a DeepSeek API key. The overlay shows the destination before sending command/output context and inserts a suggestion into the prompt for review. Configure this feature only if you want it.
-
 ## Data, updates and removal
 
 | Component | Local data |
@@ -241,17 +207,13 @@ Explain/fix uses Terminal's own `[assistant]` settings, separately from the TUI'
 | Host release archive | `DSH_HOME`, defaulting to `~/.aesir/home` in the archive launcher |
 | Desktop | `DSH_HOME`, normally `~/.dsh`; Desktop owns a separate runtime/plugin profile |
 | TUI | `$XDG_CONFIG_HOME/aesir-red-tui/client.json`, normally `~/.config/aesir-red-tui/client.json`; client preferences and drafts |
-| AESIR Term, macOS | `~/Library/Application Support/AESIR Term` |
-| AESIR Term, Linux | `~/.config/aesir-term` |
 
 TUI clients on the same running Host share its sessions, settings, credentials and plugins. The release archive and Desktop use different data directories by default. Setting the same `DSH_HOME` does not attach two Hosts to each other; their processes, runtime packages and plugin activation remain separate. `/desktop` preserves the running Host instead of copying a session between them.
 
-AESIR Term's settings and notebooks remain separate from Harness data. Its agent pane uses the TUI's configured Host; opening an unrelated Desktop instance does not attach it to that Host.
+Existing RC.3 installations need an explicit refresh after the replacement is announced: manually replace Desktop with the newly verified app, rerun the TUI curl installer, and replace any manually extracted Host runtime you use. The version remains `0.2.0-rc.3`, so an automatic version check does not install these replacement bytes. Download a fresh `SHA256SUMS` with the new files; an earlier checksum file describes the earlier downloads.
 
 For a curl-installed TUI, rerun the installer with the same prefix and desired version; it checks and activates the staged installation while retaining previous versions. Quit the client before deliberately removing an installed version. For a manual RC upgrade, export important sessions and back up your Harness data first. Quit the component, verify the replacement download, and replace the Desktop app, AppImage or extracted Host directory. Reinstall a newer TUI archive with the same npm command; update your PATH and select its new Host path with `--dsh` when the runtime directory changes. Do not assume an older runtime can read data written by a newer release. These routes do not depend on an automatic updater.
 
-AESIR Term preserves `kitty.conf`, `extras-theme.conf` and `extras/settings.toml` across updates. Other supplied files are refreshed; edited versions are saved beside them as `NAME.edited-DATE`.
-
 To remove a curl installation, close its TUI and any Desktop windows attached to its private Host, then delete the installation prefix: normally `~/.local/share/aesir-cli`, or the directory you selected with XDG_DATA_HOME or `--prefix`. Remove its PATH line from your shell startup file if needed. Deleting this package prefix leaves `DSH_HOME` and TUI preferences intact.
 
-To remove Desktop, delete its macOS application or Linux AppImage. For a manually installed TUI, run `npm uninstall --global --prefix "$HOME/.local/share/aesir-tui" @aesir-red/tui-client` before removing the Host that supplies Node/npm; use `"$HOME/.local"` instead if you chose the system-Node installation prefix. Remove the extracted Host directory when it is no longer running and remove its PATH entries from your shell startup file. Delete the macOS AESIR Term application or run `sudo apt remove aesir-term` on Linux. Application removal leaves your Harness data, TUI preferences, Terminal settings and notebooks; remove those directories separately only if you intend to erase that data.
+To remove Desktop, delete its macOS application or Linux AppImage. For a manually installed TUI, run `npm uninstall --global --prefix "$HOME/.local/share/aesir-tui" @aesir-red/tui-client` before removing the Host that supplies Node/npm; use `"$HOME/.local"` instead if you chose the system-Node installation prefix. Remove the extracted Host directory when it is no longer running and remove its PATH entries from your shell startup file. Application removal leaves your Harness data and TUI preferences; remove those directories separately only if you intend to erase that data.

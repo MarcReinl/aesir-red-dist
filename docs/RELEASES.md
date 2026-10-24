@@ -4,9 +4,9 @@ The [GitHub releases](https://github.com/MarcReinl/aesir-red-dist/releases) are 
 
 ## 0.2.0-rc.3
 
-**Status: release candidate.** Download [0.2.0-rc.3](https://github.com/MarcReinl/aesir-red-dist/releases/tag/aesir-v0.2.0-rc.3) for the four platforms below. Its `release-manifest.json` identifies every artifact, component version, size and SHA-256; `BUILD-INFO.json` records source revisions and qualification results.
+**Updated RC.3 downloads.** [0.2.0-rc.3](https://github.com/MarcReinl/aesir-red-dist/releases/tag/aesir-v0.2.0-rc.3) replaces the earlier downloads with coordinated Desktop, standalone TUI and Host runtime fixes. AESIR Term is deferred and excluded from this release.
 
-RC.3 adds the official TUI and AESIR Term alongside Desktop, with a standalone local Host runtime for terminal use. AESIR Term's agent pane and Conversations view use the AESIR TUI and Host. Desktop updates include visible sidebar browser automation, workspace/UI refinements, upstream integration work, expanded OSINT and pentest skills, the LLM Security preset, and native TUI session handoff. See [features and limits](FEATURES.md).
+RC.3 brings the official standalone TUI alongside Desktop, with a private local Host runtime for terminal use. Desktop updates include visible sidebar browser automation, workspace/UI refinements, upstream integration work, expanded OSINT and pentest skills, the LLM Security preset, and native TUI session handoff. See [features and limits](FEATURES.md).
 
 ### Artifact names
 
@@ -17,31 +17,30 @@ RC.3 adds the official TUI and AESIR Term alongside Desktop, with a standalone l
 | Linux ARM64 | `aesir-red-0.2.0-rc.3-linux-arm64.AppImage` | `aesir-0.2.0-rc.3-linux-arm64.tar.gz` |
 | Linux x86-64 | `aesir-red-0.2.0-rc.3-linux-x86_64.AppImage` | `aesir-0.2.0-rc.3-linux-x64.tar.gz` |
 
-The TUI uses one portable asset, `aesir-tui-0.2.0-rc.3.tgz`, on all four targets. Runtime dependencies are fetched by npm; Node.js and a compatible Host are prerequisites. The coordinated Host archive supplies Node/npm for this installation.
+macOS also supplies a ZIP for each CPU architecture. The TUI uses one portable asset, `aesir-tui-0.2.0-rc.3.tgz`, on all four targets. The curl installer supplies the client and matching Node/Host runtime. Manual client-only installation needs compatible Node/npm and a Host connection.
 
-AESIR Term retains its own component version, **0.1.0**. Four targets use three binary assets:
-
-| Platform | AESIR Term asset |
-| --- | --- |
-| macOS Apple Silicon and Intel | `AESIR-Term-0.1.0-macos.dmg` — universal application |
-| Debian-family Linux ARM64 | `aesir-term_0.1.0_arm64.deb` |
-| Debian-family Linux x86-64 | `aesir-term_0.1.0_amd64.deb` |
-
-The Terminal build in this release is **0.1.0+af1b13eeee99**, with the AESIR TUI agent and Host Conversations integration. Use the assets and checksums attached to this release when replacing an earlier `0.1.0` build.
-
-Terminal source delivery includes `aesir-term-0.1.0-source.tar.gz` for the customization, launchers and build scripts, and pinned `kitty-0.49.2.tar.xz` for the native terminal. `AESIR-Term-UPSTREAM-SOURCES.json` provides pinned source locations and hashes for bundled dependencies. `AESIR-Term-LICENSE.txt` and `AESIR-Term-NOTICES.md` accompany the GPL-3.0 Terminal; component notices also remain in the source archive and installed packages. GitHub's automatic distribution-repository source archives are neither installers nor the Terminal's corresponding source.
-
-The release also supplies checksum and component attribution material. Use the files named in `SHA256SUMS`.
+`release-manifest.json` identifies each component artifact, source revision, size and SHA-256. `BUILD-INFO.json` records build revisions, checks and qualification limits. Use the matching files named in `SHA256SUMS`.
 
 ### Verification and compatibility
 
 `SHA256SUMS` covers published component artifacts. [Installation](INSTALL.md#download-and-verify) shows checksum commands. A checksum establishes that the file matches the release's recorded bytes; it is separate from Apple signing/notarization or target execution tests.
 
-The TUI passed its eight native package jobs: macOS ARM64, macOS Intel, Linux ARM64 and Linux x86-64 with Node 22.19 and 24. Installation using the actual macOS ARM Host archive's Node/npm and its session, settings, preset and permission APIs also passed without model requests. The package is a portable client rather than four standalone binaries. Optional Host capabilities and provider access require separate setup.
+The replacement retains version `0.2.0-rc.3` and the artifact names above. Existing RC.3 users must manually replace Desktop and rerun the TUI installer; automatic version checks do not install an equal-version replacement. Follow [refresh instructions](INSTALL.md#data-updates-and-removal), downloading fresh files and `SHA256SUMS` together. An unchanged version string alone does not identify replacement bytes; use the artifact hash and recorded source revision.
 
-AESIR Term passed 310 source checks and 49 bundled-runtime checks per architecture. Its universal macOS build is signed ad hoc and is not notarized; Intel execution was checked through Rosetta. Linux package installation, bundled-runtime and virtual-display GUI checks passed in Debian 12 containers, with x86-64 emulated on ARM64. These checks do not establish native Intel GUI, physical GPU or Wayland behavior.
+All four replacement Desktop/Host build records passed using these local environments:
 
-Desktop and Host packages passed native build, startup and installation checks on all four targets. Native TUI-to-Desktop handoff passed cold and warm cases on macOS ARM64, preserving the exact session and stopping the managed Host when its final attached window closed. Intel and Linux handoff were not repeated. `BUILD-INFO.json` records exact build and qualification revisions, checks and remaining limits.
+| Target | Build execution | Build environment |
+| --- | --- | --- |
+| macOS ARM64 | Native ARM64 CPU | macOS 26.6.2 |
+| macOS x64 | Rosetta translation on ARM64 | macOS 26.6.2; x64 producer Node |
+| Linux ARM64 | Native ARM64 CPU in a Linux VM/container | Debian 12; macOS ARM64 physical host |
+| Linux x64 | Rosetta emulation on ARM64 | Debian 12; macOS ARM64 physical host |
+
+The replacement TUI passed one clean Node 24 package build and eight local verification jobs against the identical portable archive: each of the four targets with Node 22.19.0 and 24.21.0. Four ARM64 jobs ran without CPU translation, two macOS x64 jobs used Rosetta translation and two Linux x64 jobs used Rosetta emulation on ARM64.
+
+Packaged GUI checks passed on all four targets using native ARM64 or Rosetta execution as described above. They covered cold/warm exact-session transfer, shared attachment leases, continued conversation and orderly final-window Host shutdown. macOS x64 GUI checks ran under Rosetta on ARM64, so physical Intel hardware remains unqualified. Linux GUI tests used Ubuntu 24.04 and virtual X11, separately from the Debian 12 build environment; physical GPU and Wayland behavior remain unqualified. Linux x64 coverage used the unchanged inner Electron application extracted with `unsquashfs` under Rosetta; its AppImage launcher and native x64 hardware GUI remain unqualified. These GUI checks used a deterministic local model provider and made no paid requests. `BUILD-INFO.json` records the exact artifacts, execution modes, evidence hashes and remaining limits.
+
+The original RC.3 assets had their own build and client checks. Those historical results do not qualify the replacement bytes.
 
 ## Earlier releases
 
