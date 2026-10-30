@@ -8,7 +8,7 @@ The [GitHub releases](https://github.com/MarcReinl/aesir-red-dist/releases) are 
 
 RC.3 brings the official standalone TUI alongside Desktop. Both install the engine they need automatically; Desktop is optional for the TUI. Desktop updates include visible sidebar browser automation, workspace/UI refinements, upstream integration work, expanded OSINT and pentest skills, the LLM Security preset, and native TUI session handoff. See [features and limits](FEATURES.md).
 
-The 30 October Desktop refresh includes the updated instructions and skill guidance for all six security presets as built-in presets. It retains version `0.2.0-rc.3` and the existing download filenames. Host archives, the standalone TUI and AESIR Term retain their previous files; refresh only Desktop if those components are already current.
+The latest 30 October Desktop refresh includes updated role instructions and skill guidance for all six security presets as built-in presets. The instructions prioritize complete requested artifacts and steps for verifying them. It retains version `0.2.0-rc.3` and the existing download filenames. Host archives, the standalone TUI and AESIR Term retain their previous files; refresh only Desktop if those components are already current.
 
 ### Choose an installation
 
@@ -22,7 +22,7 @@ AESIR Term component version is **0.1.0**, build **0.1.0+efd639c5e922**. This bu
 
 `SHA256SUMS` covers published component artifacts. [Installation](INSTALL.md#download-and-verify) shows checksum commands. A checksum establishes that the file matches the release's recorded bytes; it is separate from Apple signing/notarization or target execution tests.
 
-For the 30 October refresh, all four Desktop builds passed packaged-runtime checks, and their six preset files and 119 skill files matched source revision `098dd9b62c53`. Native startup checks passed on macOS ARM64, macOS x64 under Rosetta, and Kali Linux ARM64. The running macOS apps and Kali app reported seven built-in presets with no local duplicates. The full TUI handoff GUI matrix below was not repeated for this preset refresh.
+The latest 30 October Desktop preset source is `3f07749ea73c`. `BUILD-INFO.json` records the packaged-file comparisons, runtime checks and startup checks for each download and retains the earlier refresh qualification separately. The full TUI handoff GUI matrix below was not repeated for this preset refresh.
 
 The Desktop refresh retains version `0.2.0-rc.3` and the existing download filenames. Existing RC.3 users must manually replace Desktop; automatic version checks do not install an equal-version replacement. Follow [refresh instructions](INSTALL.md#data-updates-and-removal), downloading fresh files and `SHA256SUMS` together. An unchanged version string alone does not identify replacement bytes; use the artifact hash and recorded source revision.
 
