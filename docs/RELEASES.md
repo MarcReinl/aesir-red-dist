@@ -8,6 +8,8 @@ The [GitHub releases](https://github.com/MarcReinl/aesir-red-dist/releases) are 
 
 RC.3 brings the official standalone TUI alongside Desktop. Both install the engine they need automatically; Desktop is optional for the TUI. Desktop updates include visible sidebar browser automation, workspace/UI refinements, upstream integration work, expanded OSINT and pentest skills, the LLM Security preset, and native TUI session handoff. See [features and limits](FEATURES.md).
 
+The 30 October Desktop refresh includes the updated instructions and skill guidance for all six security presets as built-in presets. It retains version `0.2.0-rc.3` and the existing download filenames. Host archives, the standalone TUI and AESIR Term retain their previous files; refresh only Desktop if those components are already current.
+
 ### Choose an installation
 
 Use the [Desktop downloads](INSTALL.md#aesir-red-desktop) or the [one-command TUI installer](INSTALL.md#install-tui). [AESIR Term](INSTALL.md#aesir-term) is an optional dedicated terminal app. Manual engine archives are for [advanced setup](ADVANCED.md#manual-runtime-and-tui-installation); the TUI installer selects and installs the correct one automatically.
@@ -20,9 +22,11 @@ AESIR Term component version is **0.1.0**, build **0.1.0+efd639c5e922**. This bu
 
 `SHA256SUMS` covers published component artifacts. [Installation](INSTALL.md#download-and-verify) shows checksum commands. A checksum establishes that the file matches the release's recorded bytes; it is separate from Apple signing/notarization or target execution tests.
 
-The replacement retains version `0.2.0-rc.3` and the existing download filenames. Existing RC.3 users must manually replace Desktop and rerun the TUI installer; automatic version checks do not install an equal-version replacement. Follow [refresh instructions](INSTALL.md#data-updates-and-removal), downloading fresh files and `SHA256SUMS` together. An unchanged version string alone does not identify replacement bytes; use the artifact hash and recorded source revision.
+For the 30 October refresh, all four Desktop builds passed packaged-runtime checks, and their six preset files and 119 skill files matched source revision `098dd9b62c53`. Native startup checks passed on macOS ARM64, macOS x64 under Rosetta, and Kali Linux ARM64. The running macOS apps and Kali app reported seven built-in presets with no local duplicates. The full TUI handoff GUI matrix below was not repeated for this preset refresh.
 
-All four replacement Desktop/Host build records passed using these local environments:
+The Desktop refresh retains version `0.2.0-rc.3` and the existing download filenames. Existing RC.3 users must manually replace Desktop; automatic version checks do not install an equal-version replacement. Follow [refresh instructions](INSTALL.md#data-updates-and-removal), downloading fresh files and `SHA256SUMS` together. An unchanged version string alone does not identify replacement bytes; use the artifact hash and recorded source revision.
+
+The 24 October Desktop/Host build records passed using these local environments:
 
 | Target | Build execution | Build environment |
 | --- | --- | --- |
@@ -33,7 +37,7 @@ All four replacement Desktop/Host build records passed using these local environ
 
 The replacement TUI passed one clean Node 24 package build and eight local verification jobs against the identical portable archive: each of the four targets with Node 22.19.0 and 24.21.0. Four ARM64 jobs ran without CPU translation, two macOS x64 jobs used Rosetta translation and two Linux x64 jobs used Rosetta emulation on ARM64.
 
-Packaged GUI checks passed on all four targets using native ARM64 or Rosetta execution as described above. They covered cold/warm exact-session transfer, shared attachment leases, continued conversation and orderly final-window Host shutdown. macOS x64 GUI checks ran under Rosetta on ARM64, so physical Intel hardware remains unqualified. Linux GUI tests used Ubuntu 24.04 and virtual X11, separately from the Debian 12 build environment; physical GPU and Wayland behavior remain unqualified. Linux x64 coverage used the unchanged inner Electron application extracted with `unsquashfs` under Rosetta; its AppImage launcher and native x64 hardware GUI remain unqualified. These GUI checks used a deterministic local model provider and made no paid requests. `BUILD-INFO.json` records the exact artifacts, execution modes, evidence hashes and remaining limits.
+The 24 October packaged GUI checks passed on all four targets using native ARM64 or Rosetta execution as described above. They covered cold/warm exact-session transfer, shared attachment leases, continued conversation and orderly final-window Host shutdown. macOS x64 GUI checks ran under Rosetta on ARM64, so physical Intel hardware remains unqualified. Linux GUI tests used Ubuntu 24.04 and virtual X11, separately from the Debian 12 build environment; physical GPU and Wayland behavior remain unqualified. Linux x64 coverage used the unchanged inner Electron application extracted with `unsquashfs` under Rosetta; its AppImage launcher and native x64 hardware GUI remain unqualified. These GUI checks used a deterministic local model provider and made no paid requests. They describe the earlier Desktop artifacts; `BUILD-INFO.json` identifies the artifacts and checks for each refresh.
 
 AESIR Term's updated build passed 800 source checks and 378 packaged-runtime checks per architecture. Its macOS universal binaries were checked natively on ARM64 and under Rosetta for Intel. Linux DEBs were installed and tested on Debian 12 with virtual X11; ARM64 was native and x86-64 used QEMU. Native Intel/Linux x86-64 GUI hardware, physical Linux GPUs and Wayland were not tested. Terminal alone requires macOS 12 or later, or a compatible glibc 2.35+/GCC 11 Linux graphical system; its TUI integration follows the TUI's requirements.
 

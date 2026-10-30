@@ -152,7 +152,7 @@ Clients on the same running Host share its sessions, settings, credentials and p
 
 For a manual upgrade, export important sessions and back up your Harness data first. Quit the component, verify the new download, and replace the extracted runtime directory. Reinstall the TUI archive with the same npm command, update PATH and use `--dsh` again if the launcher path changes. An older runtime is not guaranteed to read data written by a newer release.
 
-The updated RC.3 retains the same version and filenames. Manually replace separately extracted runtimes and reinstall the current TUI archive; automatic version checks do not install an equal-version replacement. Download fresh payloads and `SHA256SUMS` together. `release-manifest.json` records the exact hashes and source revisions; `BUILD-INFO.json` records actual build and GUI qualification. See [release notes](RELEASES.md).
+RC.3 replacements retain the same version and filenames. Manually replace a separately extracted runtime or reinstall the TUI only when its artifact hash changes; automatic version checks do not install an equal-version replacement. The 30 October Desktop refresh leaves Host and TUI archives unchanged. Download fresh payloads and `SHA256SUMS` together. `release-manifest.json` records the exact hashes and source revisions; `BUILD-INFO.json` records the checks for each artifact set. See [release notes](RELEASES.md).
 
 For a curl installation, rerun the installer with the same prefix and desired version. Close the TUI and any Desktop windows attached to its private engine before removing that prefix or an older installed version. Removing the package prefix leaves `DSH_HOME` and TUI preferences intact; remove its PATH entry separately if needed.
 

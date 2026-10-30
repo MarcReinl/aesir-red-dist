@@ -128,6 +128,6 @@ Replace the filename with your download and compare the complete hash with its l
 
 **Update Desktop:** quit the app, download and verify the replacement, then replace your installed app or AppImage.
 
-**Existing RC.3 users:** the corrected release keeps version `0.2.0-rc.3`. Manually replace Desktop and rerun the TUI installer; automatic version checks do not install an equal-version replacement. Download fresh files and `SHA256SUMS` together. To replace an earlier AESIR Term `0.1.0`, replace the macOS app or use the Linux `--reinstall` command above.
+**Existing RC.3 users:** the Desktop refresh keeps version `0.2.0-rc.3`. Manually replace Desktop; automatic version checks do not install an equal-version replacement. Download fresh files and `SHA256SUMS` together. Rerun the TUI installer only if you have not installed its corrected RC.3 package. To replace an earlier AESIR Term `0.1.0`, replace the macOS app or use the Linux `--reinstall` command above.
 
 **Remove an app:** quit it and delete its Desktop/Terminal application or AppImage; Linux Terminal packages can be removed with `sudo apt remove aesir-term`. To remove the curl-installed TUI, close it and its attached Desktop windows, delete `~/.local/share/aesir-cli` (or your custom installation folder), and remove its PATH entry from your shell startup file. Removing application files leaves conversation data and preferences intact. [Advanced data locations](ADVANCED.md#data-updates-and-manual-removal) cover custom installations and deliberate data removal.

@@ -47,7 +47,7 @@ Run `/desktop` in the TUI to continue the **same live session** in the native De
 
 ## Updates and help
 
-**Already using RC.3?** Download and replace Desktop, and rerun the TUI installer. If you use AESIR Term, replace it too: it was updated on 28 October. The corrected release keeps the same version number, so an automatic version check will not install these replacement files. See [updates and removal](docs/INSTALL.md#data-updates-and-removal).
+**Already using RC.3?** Download and replace Desktop to get the updated built-in security presets. Rerun the TUI installer if you have not installed its corrected RC.3 package. AESIR Term's latest replacement was published on 28 October. These replacements keep their existing version numbers, so an automatic version check will not install them. See [updates and removal](docs/INSTALL.md#data-updates-and-removal).
 
 - [Installation and first conversation](docs/INSTALL.md)
 - [Features](docs/FEATURES.md)
