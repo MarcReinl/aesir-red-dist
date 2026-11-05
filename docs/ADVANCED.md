@@ -26,17 +26,17 @@ curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/insta
 # Keep shell startup files unchanged; add the printed PATH yourself.
 curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install-tui.sh | sh -s -- --no-modify-path
 
-# Install only the client using your existing Node >=22.19 and npm.
+# Install only the client using your existing Node >=22.19.
 curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install-tui.sh | sh -s -- --client-only
 ```
 
 `--client-only` downloads no engine and needs an existing compatible Host connection or launcher. It retains the client's connection chooser. Its local Node requirement is independent of the macOS 15 requirement for the bundled engine. The options can be combined.
 
-Rerun the same command to update, retaining your custom prefix or client-only option. Installation is staged and checked before changing the active version; earlier versions remain installed. Session data, credentials, model settings and TUI preferences are preserved. A failed download, checksum check or dependency installation leaves the active installation unchanged.
+Rerun the same command to update, retaining your custom prefix or client-only option. Installation is staged and checked before changing the active version; earlier versions remain installed. Session data, credentials, model settings and TUI preferences are preserved. A failed download, checksum check or extraction leaves the active installation unchanged.
 
 ## Manual runtime and TUI installation
 
-The Host is the engine behind the clients. Downloading it separately is an advanced alternative to the standard installer. Download the matching archive, portable `aesir-tui-0.2.0-rc.3.tgz` and fresh `SHA256SUMS` from the [RC.3 release](https://github.com/MarcReinl/aesir-red-dist/releases/tag/aesir-v0.2.0-rc.3), then verify the downloads as described in the [installation guide](INSTALL.md).
+The Host is the engine behind the clients. Downloading it separately is an advanced alternative to the standard installer. Download the matching archive, portable `aesir-tui-0.2.0-rc.3-bundled.tgz` and fresh `SHA256SUMS` from the [RC.3 release](https://github.com/MarcReinl/aesir-red-dist/releases/tag/aesir-v0.2.0-rc.3), then verify the downloads as described in the [installation guide](INSTALL.md).
 
 | OS and CPU | Engine archive |
 | --- | --- |
@@ -45,7 +45,7 @@ The Host is the engine behind the clients. Downloading it separately is an advan
 | Linux ARM64 / aarch64 | `aesir-0.2.0-rc.3-linux-arm64.tar.gz` |
 | Linux x86-64 / amd64 | `aesir-0.2.0-rc.3-linux-x64.tar.gz` |
 
-These archives include Node.js 24.21.0 and npm. The portable TUI archive is shared by all four targets and contains neither Node nor the engine. npm fetches its production dependencies from the registry during installation, with lifecycle scripts disabled.
+The engine archives include Node.js 24.21.0 and npm. The portable TUI archive is shared by all four targets and contains neither Node nor the engine. `aesir-tui-0.2.0-rc.3-bundled.tgz` includes the TUI's production dependencies, so installing it needs neither npm nor registry access. `aesir-tui-0.2.0-rc.3.tgz` is the same client as an npm package without its dependencies, for installation with npm.
 
 Create a directory and extract the engine archive, removing its top directory. For example, on Apple Silicon:
 
@@ -55,20 +55,19 @@ tar -xzf aesir-0.2.0-rc.3-darwin-arm64.tar.gz \
   -C "$HOME/.local/share/aesir/0.2.0-rc.3" --strip-components=1
 ```
 
-Substitute your target's filename on Intel macOS or Linux. Keep the extracted directory intact. Install the TUI with the archive's Node/npm, then select this launcher once:
+Substitute your target's filename on Intel macOS or Linux. Keep the extracted directory intact. Extract the TUI beside it, link its command, then select this launcher once:
 
 ```sh
 aesir_runtime="$HOME/.local/share/aesir/0.2.0-rc.3"
-aesir_tui_prefix="$HOME/.local/share/aesir-tui"
-export PATH="$aesir_runtime/node/bin:$aesir_tui_prefix/bin:$PATH"
-"$aesir_runtime/node/bin/node" \
-  "$aesir_runtime/node/lib/node_modules/npm/bin/npm-cli.js" \
-  install --global --prefix "$aesir_tui_prefix" --omit=dev --ignore-scripts \
-  ./aesir-tui-0.2.0-rc.3.tgz
+aesir_tui="$HOME/.local/share/aesir-tui/0.2.0-rc.3"
+mkdir -p "$aesir_tui" "$HOME/.local/share/aesir-tui/bin"
+tar -xzf aesir-tui-0.2.0-rc.3-bundled.tgz -C "$aesir_tui" --strip-components=1
+ln -sf "$aesir_tui/dist/cli.js" "$HOME/.local/share/aesir-tui/bin/aesir-tui"
+export PATH="$aesir_runtime/node/bin:$HOME/.local/share/aesir-tui/bin:$PATH"
 aesir-tui --dsh "$aesir_runtime/bin/aesir" --cwd /absolute/path/to/project
 ```
 
-Replace the project path with your workspace. The client remembers the launcher; later runs can use `aesir-tui` or `aesir`. Add both bin directories to your shell startup file so new terminals can find the client and Node. Keep the engine's `bin/aesir` separate from the TUI command with the same name. This route needs no separate system Node installation.
+Replace the project path with your workspace. The client remembers the launcher; later runs can use `aesir-tui`. Add both bin directories to your shell startup file so new terminals can find the client and Node. Keep the engine's `bin/aesir` separate from the TUI command with the same name. This route needs no separate system Node installation.
 
 ## Existing Node/npm and engine
 
@@ -80,13 +79,15 @@ npm --version
 node -p 'process.platform + " " + process.arch'
 ```
 
-Install the verified archive into a user-owned prefix:
+Install the verified npm package into a user-owned prefix:
 
 ```sh
 npm install --global --prefix "$HOME/.local" --omit=dev --ignore-scripts ./aesir-tui-0.2.0-rc.3.tgz
 export PATH="$HOME/.local/bin:$PATH"
 aesir-tui --version
 ```
+
+Without npm or registry access, extract `aesir-tui-0.2.0-rc.3-bundled.tgz` and link `dist/cli.js` as `aesir-tui`, as in the [manual installation](#manual-runtime-and-tui-installation); only Node is required.
 
 Keep that PATH setting in your shell startup file. Both aliases start the same client; `aesir-tui` distinguishes it from an engine launcher also named `aesir`. Choose a separate prefix if an executable already exists there.
 
@@ -150,10 +151,10 @@ The kernel must permit the selected backend. If neither backend works, confined 
 
 Clients on the same running Host share its sessions, settings, credentials and plugins. The release archive and Desktop use different data directories by default. Setting the same `DSH_HOME` does not attach two Hosts to each other; their processes, runtime packages and plugin activation remain separate. `/desktop` retains the running Host instead of copying a session between them.
 
-For a manual upgrade, export important sessions and back up your Harness data first. Quit the component, verify the new download, and replace the extracted runtime directory. Reinstall the TUI archive with the same npm command, update PATH and use `--dsh` again if the launcher path changes. An older runtime is not guaranteed to read data written by a newer release.
+For a manual upgrade, export important sessions and back up your Harness data first. Quit the component, verify the new download, and replace the extracted runtime directory. Extract the new TUI archive into a new directory and relink `aesir-tui`, or reinstall the npm package with the same npm command; update PATH and use `--dsh` again if the launcher path changes. An older runtime is not guaranteed to read data written by a newer release.
 
 RC.3 replacements retain the same version and filenames. Manually replace a separately extracted runtime or reinstall the TUI only when its artifact hash changes; automatic version checks do not install an equal-version replacement. The 30 October Desktop refresh leaves Host and TUI archives unchanged. Download fresh payloads and `SHA256SUMS` together. `release-manifest.json` records the exact hashes and source revisions; `BUILD-INFO.json` records the checks for each artifact set. See [release notes](RELEASES.md).
 
 For a curl installation, rerun the installer with the same prefix and desired version. Close the TUI and any Desktop windows attached to its private engine before removing that prefix or an older installed version. Removing the package prefix leaves `DSH_HOME` and TUI preferences intact; remove its PATH entry separately if needed.
 
-For a manually installed TUI, run `npm uninstall --global --prefix "$HOME/.local/share/aesir-tui" @aesir-red/tui-client` before removing the runtime that supplies Node/npm; use `"$HOME/.local"` for the system-Node prefix shown above. Remove the extracted runtime directory when it is no longer running, then remove its PATH entries. Removing application packages leaves Harness data and TUI preferences; erase those directories separately only if you intend to delete the data.
+For a manually extracted TUI, delete `~/.local/share/aesir-tui`. For an npm-installed TUI, run `npm uninstall --global --prefix "$HOME/.local" @aesir-red/tui-client`. Remove the extracted runtime directory when it is no longer running, then remove its PATH entries. Removing application packages leaves Harness data and TUI preferences; erase those directories separately only if you intend to delete the data.

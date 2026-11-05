@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install public release assets without system Node and probe the bundled Host."""
+"""Install public release assets without system Node/npm or npm registry access and probe the bundled Host."""
 
 import argparse
 import hashlib
@@ -87,6 +87,8 @@ def main():
         "XDG_DATA_HOME": str(home / ".local/share"),
         "XDG_CACHE_HOME": str(home / ".cache"),
         "DSH_HOME": str(home / "harness-data"), "DSH_TELEMETRY_MODE": "DISABLED",
+        # Any npm the installer started would fail here, as on a machine that blocks the registry.
+        "npm_config_registry": "https://registry.invalid", "npm_config_offline": "true",
     }
     assert shutil.which("node", path=env["PATH"]) is None, "This smoke requires a PATH without system Node"
     assert shutil.which("npm", path=env["PATH"]) is None, "This smoke requires a PATH without system npm"
@@ -97,7 +99,7 @@ def main():
              "--proto", "=https", "--proto-redir", "=https", "--output",
              str(downloaded_installer), PUBLIC_INSTALLER], env=env, cwd=workspace)
         assert hashlib.sha256(downloaded_installer.read_bytes()).hexdigest() == installer_sha256, "Public installer differs from the reviewed file"
-        print("Installing actual public assets with system Node/npm absent from PATH…", flush=True)
+        print("Installing actual public assets with system Node/npm absent and the npm registry unreachable…", flush=True)
         install_output = run(
             ["/bin/sh", str(downloaded_installer), "--prefix", str(prefix), "--no-modify-path"],
             env=env, cwd=workspace, timeout=1200,
@@ -152,7 +154,7 @@ def main():
                   "publicInstallerUrl": PUBLIC_INSTALLER,
                   "installerSha256": installer_sha256,
                   "version": version, "catalogEndpoints": 141, "hostSmoke": report,
-                  "ownedProcessesAfterExit": [], "systemNodeRequired": False,
+                  "ownedProcessesAfterExit": [], "systemNodeRequired": False, "npmRegistryRequired": False,
                   "sameVersionReinstall": "passed", "previousInstallationPreserved": True,
                   "userDataPreserved": True, "catalogHarnessRevision": catalog_revision,
                   "qualifiedRuntimeInventoryMatched": expected_runtime is not None,

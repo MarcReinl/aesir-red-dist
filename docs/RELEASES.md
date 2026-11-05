@@ -10,6 +10,8 @@ RC.3 brings the official standalone TUI alongside Desktop. Both install the engi
 
 The latest 30 October Desktop refresh includes updated role instructions and skill guidance for all six security presets as built-in presets. The instructions prioritize complete requested artifacts and steps for verifying them. It retains version `0.2.0-rc.3` and the existing download filenames. Host archives, the standalone TUI and AESIR Term retain their previous files; refresh only Desktop if those components are already current.
 
+On 5 November, RC.3 gained `aesir-tui-0.2.0-rc.3-bundled.tgz`: the unchanged TUI package with its production dependencies included. The TUI installer now uses it and no longer runs npm or contacts the npm registry, so it works on machines that block npm. The TUI itself, Host archives, Desktop and AESIR Term are unchanged; existing TUI installations need no action. `SHA256SUMS` and `release-manifest.json` list the new file.
+
 ### Choose an installation
 
 Use the [Desktop downloads](INSTALL.md#aesir-red-desktop) or the [one-command TUI installer](INSTALL.md#install-tui). [AESIR Term](INSTALL.md#aesir-term) is an optional dedicated terminal app. Manual engine archives are for [advanced setup](ADVANCED.md#manual-runtime-and-tui-installation); the TUI installer selects and installs the correct one automatically.

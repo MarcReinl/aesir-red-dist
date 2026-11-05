@@ -54,12 +54,14 @@ Usage: install-tui.sh [options]
   --version VERSION          Coordinated release (default: 0.2.0-rc.3)
   --prefix ABSOLUTE_DIRECTORY Install directory (default: $XDG_DATA_HOME/aesir-cli
                              or $HOME/.local/share/aesir-cli)
-  --client-only              Use existing Node 22.19+ and npm; download no Host
+  --client-only              Use existing Node 22.19+; download no Host
   --no-modify-path           Leave shell profiles unchanged
   --help                     Show this help
 
 Installs aesir and aesir-tui into PREFIX/bin without sudo. Full installation
-includes a private Node/Host runtime. Dependencies require npm registry access.
+includes a private Node/Host runtime. A release that publishes
+aesir-tui-VERSION-bundled.tgz installs without npm or npm registry access;
+for an older release, npm installs the TUI dependencies from the registry.
 No Host or model starts during installation. Existing connection settings stay
 unchanged. This installer does not discover or reuse Desktop's Host automatically.
 Full runtime: macOS 15+; Linux qualified on Ubuntu 24.04. ARM64 and x64 only.
@@ -88,7 +90,6 @@ HELP
   fi
   if [ "$client_only" = 1 ]; then
     node=$(command -v node) || fail "Client-only mode requires Node 22.19+ on PATH."
-    npm=$(command -v npm) || fail "Client-only mode requires npm on PATH."
   fi
   [ ! -L "$prefix" ] || fail "Installation prefix must not be a symlink."
   if [ -e "$prefix" ]; then
@@ -113,8 +114,17 @@ HELP
   NODE_DISABLE_COMPILE_CACHE=1
   export NODE_COMPILE_CACHE NODE_DISABLE_COMPILE_CACHE
   release_url=https://github.com/MarcReinl/aesir-red-dist/releases/download/aesir-v$version
-  tui_asset=aesir-tui-$version.tgz
   download SHA256SUMS "$stage/SHA256SUMS"
+  tui_asset=aesir-tui-$version-bundled.tgz
+  if awk -v file="$tui_asset" '$2 == file { found=1 } END { exit !found }' "$stage/SHA256SUMS"; then
+    bundled=1
+  else
+    bundled=0
+    tui_asset=aesir-tui-$version.tgz
+    if [ "$client_only" = 1 ]; then
+      npm=$(command -v npm) || fail "Release $version has no bundled TUI; client-only mode requires npm on PATH."
+    fi
+  fi
   download "$tui_asset" "$stage/$tui_asset"
   verify "$tui_asset"
   unset NODE_OPTIONS NODE_PATH
@@ -128,7 +138,8 @@ HELP
     tar -xzf "$stage/$host_asset" -C "$stage/runtime" --strip-components=1 || fail "Cannot extract Host archive."
     node=$stage/runtime/node/bin/node
     npm=$stage/runtime/node/lib/node_modules/npm/bin/npm-cli.js
-    [ -x "$node" ] && [ -f "$npm" ] && [ -x "$stage/runtime/bin/aesir" ] || fail "Host archive is missing its Node, npm or launcher."
+    [ -x "$node" ] && [ -x "$stage/runtime/bin/aesir" ] || fail "Host archive is missing its Node or launcher."
+    [ "$bundled" = 1 ] || [ -f "$npm" ] || fail "Host archive is missing its npm."
   fi
   "$node" --input-type=module - "$platform" "$arch" "$version" "$stage" "$client_only" <<'VALIDATE_RUNTIME' || fail "Runtime validation failed; use a supported OS and architecture."
 import { readFileSync } from 'node:fs';
@@ -146,7 +157,14 @@ VALIDATE_RUNTIME
   : > "$stage/npmrc"
   : > "$stage/global-npmrc"
   printf 'Installing AESIR TUI %s for %s…\n' "$version" "$target"
-  if [ "$client_only" = 0 ]; then
+  if [ "$bundled" = 1 ]; then
+    tar -tzf "$stage/$tui_asset" > "$stage/tui-files" || fail "Invalid TUI archive."
+    awk '/^\// || /(^|\/)\.\.(\/|$)/ || !/^package(\/|$)/ {exit 1}' "$stage/tui-files" || fail "Unsafe TUI archive paths."
+    tui_root=$stage/client/lib/node_modules/@aesir-red/tui-client
+    mkdir -p "$tui_root"
+    tar -xzf "$stage/$tui_asset" -C "$tui_root" --strip-components=1 || fail "Cannot extract TUI archive."
+    [ -z "$(find "$tui_root" -type l -print)" ] || fail "TUI archive must not contain links."
+  elif [ "$client_only" = 0 ]; then
     PATH="$stage/runtime/node/bin:$PATH" npm_config_cache="$stage/npm-cache" \
       "$node" "$npm" install --global --prefix "$stage/client" --omit=dev --ignore-scripts \
       --no-audit --no-fund --userconfig "$stage/npmrc" --globalconfig "$stage/global-npmrc" "$stage/$tui_asset" \
