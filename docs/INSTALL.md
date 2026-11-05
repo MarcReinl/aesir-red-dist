@@ -39,7 +39,7 @@ Run this in your macOS or Linux terminal:
 curl -fsSL https://raw.githubusercontent.com/MarcReinl/aesir-red-dist/main/install-tui.sh | sh
 ```
 
-The installer selects your computer's version and installs the TUI with its engine and Node.js automatically. You do not need Desktop, sudo, system Node/npm, a compiler or a source checkout. It checks the release downloads before activating the installation and starts no agent session during installation.
+The installer selects your computer's version and installs the TUI with its engine and Node.js automatically. You do not need Desktop, sudo, system Node/npm, npm registry access, a compiler or a source checkout; the installer downloads only from this repository's GitHub releases, so it works where npm is blocked. It checks the release downloads before activating the installation and starts no agent session during installation.
 
 Close and reopen your terminal, then run this from your project folder:
 

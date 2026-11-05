@@ -35,7 +35,7 @@ Reopen your terminal, then run this from your project folder:
 aesir
 ```
 
-The TUI works standalone. Desktop is optional, and the installer automatically installs the engine and Node.js it needs. You do not need sudo, a separate runtime installation or a source checkout. On first use, trust your project folder, configure a provider with `/providers`, and choose a model with `/model`.
+The TUI works standalone. Desktop is optional, and the installer automatically installs the engine and Node.js it needs. You do not need sudo, a separate runtime installation, npm or npm registry access, or a source checkout; the installer downloads only from this repository's GitHub releases. On first use, trust your project folder, configure a provider with `/providers`, and choose a model with `/model`.
 
 ### Continue in Desktop
 

@@ -4,6 +4,8 @@ Only curl, uname, sw_vers, and archive-carried Node/npm launchers are fixtures.
 Every subprocess uses a private HOME, data root, config, cache, and temporary
 directory. The fixture client reports connection selection instead of starting
 a Host, and its install script rejects execution to exercise --ignore-scripts.
+Releases publish a bundled TUI by default; its client imports a bundled
+dependency, so a missing node_modules fails activation.
 """
 import hashlib
 import io
@@ -22,6 +24,7 @@ import unittest
 
 
 INSTALLER = Path(__file__).resolve().parents[1] / 'install-tui.sh'
+BUNDLER = Path(__file__).resolve().parents[1] / 'scripts/bundle-tui.py'
 VERSION = '0.2.0-rc.3'
 REAL_NODE = Path(shutil.which('node') or '/missing-node').resolve()
 REAL_NPM = Path(shutil.which('npm') or '/missing-npm').resolve()
@@ -80,6 +83,8 @@ if(options.version){const p=JSON.parse(await readFile(new URL('../package.json',
 else if(options.help)console.log('Fixture client help');
 else console.log(JSON.stringify({argv,connection:selectConnection(options,process.env,await loadPreferences()),cwd:options.cwd}));
 """
+
+BUNDLED_CLIENT = CLIENT.replace('import {readFile}', "import 'aesir-fixture-dependency';\nimport {readFile}", 1)
 
 CURL = r"""import json,os,pathlib,shutil,sys,time
 from urllib.parse import urlparse,unquote
@@ -208,17 +213,28 @@ class ReleaseFixture:
         system, machine = TARGETS[target]
         self.env.update(FIXTURE_SYSTEM=system, FIXTURE_MACHINE=machine)
 
-    def make_release(self, version, npm_failure=False):
+    def make_release(self, version, npm_failure=False, bundled=True):
         folder = self.releases / version
         package = {
             'name': '@aesir-red/tui-client', 'version': version, 'type': 'module',
             'bin': {'aesir': 'dist/cli.js', 'aesir-tui': 'dist/cli.js'},
             'engines': {'node': '>=22.19'}, 'scripts': {'preinstall': 'node -e "process.exit(71)"'},
         }
-        make_archive(folder / ('aesir-tui-' + version + '.tgz'), {
+        files = {
             'package/package.json': json.dumps(package), 'package/dist/preferences.js': PREFERENCES,
             'package/dist/launcher.js': ARGUMENTS, 'package/dist/cli.js': (CLIENT, 0o755),
-        })
+        }
+        make_archive(folder / ('aesir-tui-' + version + '.tgz'), files)
+        bundle = folder / ('aesir-tui-' + version + '-bundled.tgz')
+        if bundled:
+            make_archive(bundle, {
+                **files, 'package/dist/cli.js': (BUNDLED_CLIENT, 0o755),
+                'package/node_modules/aesir-fixture-dependency/package.json': json.dumps(
+                    {'name': 'aesir-fixture-dependency', 'version': '1.0.0', 'type': 'module', 'main': 'index.js'}),
+                'package/node_modules/aesir-fixture-dependency/index.js': 'export const loaded = true;\n',
+            })
+        else:
+            bundle.unlink(missing_ok=True)
         for target in TARGETS:
             platform, arch = target.split('-')
             probe = 'Object.defineProperty(process,"platform",{value:' + json.dumps(platform) + '});Object.defineProperty(process,"arch",{value:' + json.dumps(arch) + '});\n'
@@ -294,7 +310,8 @@ class InstallerIntegrationTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                     names = [row['filename'] for row in fixture.requests()]
                     self.assertIn('aesir-' + VERSION + '-' + target + '.tar.gz', names)
-                    self.assertIn('aesir-tui-' + VERSION + '.tgz', names)
+                    self.assertIn('aesir-tui-' + VERSION + '-bundled.tgz', names)
+                    self.assertNotIn('aesir-tui-' + VERSION + '.tgz', names)
                     self.assertIn('SHA256SUMS', names)
                     self.assertEqual({row['version'] for row in fixture.requests()}, {VERSION})
                     self.assertFalse((fixture.root / 'host-started').exists())
@@ -316,6 +333,50 @@ class InstallerIntegrationTests(unittest.TestCase):
         self.assertEqual(value['cwd'], str(self.fixture.workspace))
         self.assertFalse(self.fixture.preference.exists(), 'Installing or inspecting a version must not create client preferences')
         self.assertEqual(list(self.fixture.temp.iterdir()), [], 'Private staging directory leaked')
+
+    def test_bundled_release_installs_without_running_npm(self):
+        self.fixture.make_release(VERSION, npm_failure=True)
+        self.install_ok('--no-modify-path')
+        names = [row['filename'] for row in self.fixture.requests()]
+        self.assertIn('aesir-tui-' + VERSION + '-bundled.tgz', names)
+        self.assertNotIn('aesir-tui-' + VERSION + '.tgz', names)
+        installed = self.fixture.prefix / 'current/client/lib/node_modules/@aesir-red/tui-client'
+        self.assertTrue((installed / 'node_modules/aesir-fixture-dependency/index.js').is_file())
+        self.assertFalse((self.fixture.prefix / 'current/npm-cache').exists())
+        result = self.fixture.client('--version')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(VERSION, result.stdout)
+
+    def test_release_without_bundled_tui_installs_dependencies_with_npm(self):
+        self.fixture.make_release(VERSION, bundled=False)
+        self.install_ok('--no-modify-path')
+        names = [row['filename'] for row in self.fixture.requests()]
+        self.assertIn('aesir-tui-' + VERSION + '.tgz', names)
+        self.assertNotIn('aesir-tui-' + VERSION + '-bundled.tgz', names)
+        result = self.fixture.client('--version')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(VERSION, result.stdout)
+
+    def test_bundle_script_output_installs_reproducibly_without_npm(self):
+        version = '0.2.0-rc.4'
+        self.fixture.make_release(version, npm_failure=True, bundled=False)
+        folder = self.fixture.releases / version
+        env = {**self.fixture.env, 'PATH': os.pathsep.join(map(str, (self.fixture.client_tools, self.fixture.tools)))}
+        outputs = []
+        for name in ('first', 'second'):
+            output = self.fixture.root / name / ('aesir-tui-' + version + '-bundled.tgz')
+            result = subprocess.run([sys.executable, '-I', str(BUNDLER), str(folder / ('aesir-tui-' + version + '.tgz')),
+                                     '--output', str(output)], env=env, capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            outputs.append(output.read_bytes())
+        self.assertEqual(outputs[0], outputs[1], 'Bundle bytes depend on build time or order')
+        (folder / ('aesir-tui-' + version + '-bundled.tgz')).write_bytes(outputs[0])
+        self.fixture.checksums(version)
+        self.install_ok('--version', version, '--no-modify-path')
+        self.assertIn('aesir-tui-' + version + '-bundled.tgz', [row['filename'] for row in self.fixture.requests()])
+        result = self.fixture.client('--version')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(version, result.stdout)
 
     def test_default_prefix_uses_xdg_data_home_and_pins_rc3(self):
         result = self.install_ok('--no-modify-path', use_prefix=False)
@@ -375,15 +436,30 @@ class InstallerIntegrationTests(unittest.TestCase):
         self.fixture.with_client_runtime()
         self.install_ok('--client-only', '--no-modify-path')
         names = [row['filename'] for row in self.fixture.requests()]
-        self.assertIn('aesir-tui-' + VERSION + '.tgz', names)
+        self.assertIn('aesir-tui-' + VERSION + '-bundled.tgz', names)
         self.assertFalse(any(name.startswith('aesir-' + VERSION + '-') for name in names))
         self.assertFalse((self.fixture.prefix / 'current/runtime/bin/aesir').exists())
         self.assertEqual(self.client_json()['connection'], {})
 
-    def test_client_only_requires_existing_node_and_npm(self):
+    def test_client_only_requires_existing_node(self):
         result = self.fixture.install('--client-only', '--no-modify-path')
         self.assertNotEqual(result.returncode, 0)
-        self.assertRegex(result.stdout + result.stderr, r'(?i)node|npm')
+        self.assertRegex(result.stdout + result.stderr, r'(?i)node')
+        self.assertFalse((self.fixture.prefix / 'current').exists())
+
+    def test_client_only_bundled_release_needs_no_npm(self):
+        self.fixture.with_client_runtime()
+        (self.fixture.client_tools / 'npm').unlink()
+        self.install_ok('--client-only', '--no-modify-path')
+        self.assertEqual(self.client_json()['connection'], {})
+
+    def test_client_only_release_without_bundled_tui_requires_npm(self):
+        self.fixture.make_release(VERSION, bundled=False)
+        self.fixture.with_client_runtime()
+        (self.fixture.client_tools / 'npm').unlink()
+        result = self.fixture.install('--client-only', '--no-modify-path')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('npm', result.stdout + result.stderr)
         self.assertFalse((self.fixture.prefix / 'current').exists())
 
     def assert_failed_upgrade_preserves_active_install(self, corrupt):
@@ -395,19 +471,37 @@ class InstallerIntegrationTests(unittest.TestCase):
         preference = self.fixture.preference.read_bytes()
         old_profile = profile.read_bytes()
         version = '0.2.0-rc.4'
-        self.fixture.make_release(version, npm_failure=corrupt == 'npm')
+        self.fixture.make_release(version, npm_failure=corrupt == 'npm', bundled=corrupt != 'npm')
         folder = self.fixture.releases / version
+        bundle = folder / ('aesir-tui-' + version + '-bundled.tgz')
         if corrupt == 'checksum':
-            with (folder / ('aesir-tui-' + version + '.tgz')).open('ab') as archive:
+            with bundle.open('ab') as archive:
                 archive.write(b'changed after checksum')
         elif corrupt == 'missing-checksum':
             sums = folder / 'SHA256SUMS'
             sums.write_text(''.join(line for line in sums.read_text().splitlines(keepends=True) if 'aesir-tui-' not in line))
         elif corrupt == 'duplicate-checksum':
             sums = folder / 'SHA256SUMS'
-            line = next(line for line in sums.read_text().splitlines(keepends=True) if 'aesir-tui-' in line)
+            line = next(line for line in sums.read_text().splitlines(keepends=True) if line.rstrip().endswith(bundle.name))
             with sums.open('a') as output:
                 output.write(line)
+        elif corrupt in ('tui-outside-package', 'tui-link'):
+            with tarfile.open(bundle, 'r:gz') as archive:
+                files = {entry.name: (archive.extractfile(entry).read().decode(), entry.mode)
+                         for entry in archive if entry.isfile()}
+            if corrupt == 'tui-outside-package':
+                files['other/escape.js'] = 'export {};\n'
+            make_archive(bundle, files)
+            if corrupt == 'tui-link':
+                with tarfile.open(bundle, 'r:gz') as archive:
+                    entries = [(entry, archive.extractfile(entry).read()) for entry in archive]
+                with tarfile.open(bundle, 'w:gz') as archive:
+                    for entry, data in entries:
+                        archive.addfile(entry, io.BytesIO(data))
+                    link = tarfile.TarInfo('package/dist/outside')
+                    link.type, link.linkname = tarfile.SYMTYPE, '/'
+                    archive.addfile(link)
+            self.fixture.checksums(version)
         elif corrupt in ('runtime-version', 'runtime-target'):
             path = folder / ('aesir-' + version + '-darwin-arm64.tar.gz')
             with tarfile.open(path, 'r:gz') as archive:
@@ -439,6 +533,11 @@ class InstallerIntegrationTests(unittest.TestCase):
 
     def test_duplicate_exact_checksum_entries_are_rejected(self):
         self.assert_failed_upgrade_preserves_active_install('duplicate-checksum')
+
+    def test_bundled_tui_entries_outside_package_or_links_are_rejected(self):
+        for corrupt in ('tui-outside-package', 'tui-link'):
+            with self.subTest(corrupt=corrupt):
+                self.assert_failed_upgrade_preserves_active_install(corrupt)
 
     def test_wrong_runtime_metadata_with_valid_checksums_is_rejected(self):
         for field in ('runtime-version', 'runtime-target'):
